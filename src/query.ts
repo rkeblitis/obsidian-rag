@@ -3,26 +3,10 @@
  * For debugging and learnings
  * Not imported elsewhere — run directly, e.g. `npx tsx src/query.ts "your question"`.
  */
-import { embedText } from "./lib/ollama/embed.js";
 import { loadEmbeddedChunks } from "./lib/embeddings-index.js";
+import { embedText } from "./lib/ollama/embed.js";
+import { cosineSimilarity } from "./lib/similarity.js";
 import type { EmbeddedChunk } from "./lib/types.js";
-
-// Cosine similarity: measures how similar two vectors are in direction.
-// Returns a value between -1 and 1. Higher = more similar.
-// 1 = identical direction, 0 = perpendicular (unrelated), -1 = opposite.
-function cosineSimilarity(a: number[], b: number[]): number {
-  let dotProduct = 0;
-  let magnitudeA = 0;
-  let magnitudeB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i]! * b[i]!;
-    magnitudeA += a[i]! * a[i]!;
-    magnitudeB += b[i]! * b[i]!;
-  }
-
-  return dotProduct / (Math.sqrt(magnitudeA) * Math.sqrt(magnitudeB));
-}
 
 async function query(question: string, topK: number = 5, threshold: number = 0.55): Promise<void> {
   console.log(`\nQuestion: "${question}"\n`);

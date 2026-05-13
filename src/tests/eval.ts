@@ -1,5 +1,6 @@
-import { embedText } from "../lib/ollama/embed.js";
 import { loadEmbeddedChunks } from "../lib/embeddings-index.js";
+import { embedText } from "../lib/ollama/embed.js";
+import { cosineSimilarity } from "../lib/similarity.js";
 import type { EmbeddedChunk } from "../lib/types.js";
 
 type TestCase = {
@@ -33,18 +34,6 @@ const TEST_CASES: TestCase[] = [
   },
   // Add 5+ more questions based on YOUR vault
 ];
-
-function cosineSimilarity(a: number[], b: number[]): number {
-  let dotProduct = 0;
-  let magnitudeA = 0;
-  let magnitudeB = 0;
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i]! * b[i]!;
-    magnitudeA += a[i]! * a[i]!;
-    magnitudeB += b[i]! * b[i]!;
-  }
-  return dotProduct / (Math.sqrt(magnitudeA) * Math.sqrt(magnitudeB));
-}
 
 async function evaluateOne(chunks: EmbeddedChunk[], testCase: TestCase, topK: number = 5): Promise<boolean> {
   const questionVector = await embedText(testCase.question);
