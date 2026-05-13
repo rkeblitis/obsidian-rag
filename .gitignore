@@ -5,3 +5,4 @@ node_modules/
 *.local
 embeddings.json
 vault-overview.local.md
+LEARNING-log.md
