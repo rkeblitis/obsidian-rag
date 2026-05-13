@@ -11,6 +11,7 @@ import {
   resolveUserPath,
 } from "./config.js";
 import type { EmbeddedChunk } from "./lib/types.js";
+import { embedText } from "./lib/ollama/embed.js";
 
 const SIMILARITY_THRESHOLD = 0.55;
 const TOP_K = 5;
@@ -29,16 +30,6 @@ function cosineSimilarity(a: number[], b: number[]): number {
   return dotProduct / (Math.sqrt(magnitudeA) * Math.sqrt(magnitudeB));
 }
 
-async function embed(text: string): Promise<number[]> {
-  const response = await fetch(`${ollamaBaseUrl()}/api/embeddings`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "nomic-embed-text", prompt: text }),
-  });
-  const data = await response.json() as { embedding: number[] };
-  return data.embedding;
-}
-
 async function loadEmbeddings(): Promise<EmbeddedChunk[]> {
   const raw = await readFile(resolveUserPath(embeddingsFilePath()), "utf-8");
   return JSON.parse(raw) as EmbeddedChunk[];
@@ -46,7 +37,7 @@ async function loadEmbeddings(): Promise<EmbeddedChunk[]> {
 
 async function retrieve(question: string): Promise<{ chunk: EmbeddedChunk; score: number }[]> {
   const chunks = await loadEmbeddings();
-  const questionVector = await embed(question);
+  const questionVector = await embedText(question);
 
   const scored = chunks
     .map(chunk => ({

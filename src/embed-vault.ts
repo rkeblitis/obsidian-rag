@@ -7,30 +7,12 @@ import { writeFile } from "node:fs/promises";
 import { relative } from "node:path";
 import {
   embeddingsFilePath,
-  ollamaBaseUrl,
   requireVaultPath,
   resolveUserPath,
 } from "./config.js";
 import type { Chunk, EmbeddedChunk } from "./lib/types.js";
+import { embedText } from "./lib/ollama/embed.js";
 import { chunkNote, loadVault } from "./lib/vault.js";
-
-async function embed(text: string): Promise<number[]> {
-  const response = await fetch(`${ollamaBaseUrl()}/api/embeddings`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "nomic-embed-text",
-      prompt: text,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Ollama returned ${response.status}: ${await response.text()}`);
-  }
-
-  const data = await response.json() as { embedding: number[] };
-  return data.embedding;
-}
 
 async function embedChunks(chunks: Chunk[]): Promise<EmbeddedChunk[]> {
   const results: EmbeddedChunk[] = [];
@@ -43,7 +25,7 @@ async function embedChunks(chunks: Chunk[]): Promise<EmbeddedChunk[]> {
       console.log(`  Embedded ${i}/${chunks.length}...`);
     }
 
-    const embedding = await embed(chunk.text);
+    const embedding = await embedText(chunk.text);
     results.push({ ...chunk, embedding });
   }
 

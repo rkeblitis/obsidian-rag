@@ -4,7 +4,8 @@
  * Not imported elsewhere — run directly, e.g. `npx tsx src/query.ts "your question"`.
  */
 import { readFile } from "node:fs/promises";
-import { embeddingsFilePath, ollamaBaseUrl, resolveUserPath } from "./config.js";
+import { embeddingsFilePath, resolveUserPath } from "./config.js";
+import { embedText } from "./lib/ollama/embed.js";
 import type { EmbeddedChunk } from "./lib/types.js";
 
 // Cosine similarity: measures how similar two vectors are in direction.
@@ -24,24 +25,6 @@ function cosineSimilarity(a: number[], b: number[]): number {
   return dotProduct / (Math.sqrt(magnitudeA) * Math.sqrt(magnitudeB));
 }
 
-async function embed(text: string): Promise<number[]> {
-  const response = await fetch(`${ollamaBaseUrl()}/api/embeddings`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "nomic-embed-text",
-      prompt: text,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Ollama returned ${response.status}: ${await response.text()}`);
-  }
-
-  const data = await response.json() as { embedding: number[] };
-  return data.embedding;
-}
-
 async function loadEmbeddings(): Promise<EmbeddedChunk[]> {
   const raw = await readFile(resolveUserPath(embeddingsFilePath()), "utf-8");
   return JSON.parse(raw) as EmbeddedChunk[];
@@ -54,7 +37,7 @@ async function query(question: string, topK: number = 5, threshold: number = 0.5
   const chunks = await loadEmbeddings();
 
   // Embed the question
-  const questionVector = await embed(question);
+  const questionVector = await embedText(question);
 
   // Score every chunk by similarity to the question
   const scored = chunks.map(chunk => ({
