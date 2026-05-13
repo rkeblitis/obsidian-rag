@@ -11,11 +11,8 @@ import {
   requireVaultPath,
   resolveUserPath,
 } from "./config.js";
-import { chunkNote, loadVault, type Chunk } from "./lib/vault.js";
-
-type EmbeddedChunk = Chunk & {
-  embedding: number[];
-};
+import type { Chunk, EmbeddedChunk } from "./lib/types.js";
+import { chunkNote, loadVault } from "./lib/vault.js";
 
 async function embed(text: string): Promise<number[]> {
   const response = await fetch(`${ollamaBaseUrl()}/api/embeddings`, {

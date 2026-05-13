@@ -10,17 +10,10 @@ import {
   ollamaBaseUrl,
   resolveUserPath,
 } from "./config.js";
+import type { EmbeddedChunk } from "./lib/types.js";
 
 const SIMILARITY_THRESHOLD = 0.55;
 const TOP_K = 5;
-
-type EmbeddedChunk = {
-  noteTitle: string;
-  notePath: string;
-  chunkIndex: number;
-  text: string;
-  embedding: number[];
-};
 
 // --- Retrieval (same as before) ---
 

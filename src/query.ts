@@ -5,14 +5,7 @@
  */
 import { readFile } from "node:fs/promises";
 import { embeddingsFilePath, ollamaBaseUrl, resolveUserPath } from "./config.js";
-
-type EmbeddedChunk = {
-  noteTitle: string;
-  notePath: string;
-  chunkIndex: number;
-  text: string;
-  embedding: number[];
-};
+import type { EmbeddedChunk } from "./lib/types.js";
 
 // Cosine similarity: measures how similar two vectors are in direction.
 // Returns a value between -1 and 1. Higher = more similar.

@@ -2,7 +2,8 @@
  * Debug chunking: stats + sample output. Tuning knobs live in ./lib/vault.ts (CHUNK_SIZE / CHUNK_OVERLAP).
  */
 import { requireVaultPath } from "./config.js";
-import { chunkNote, loadVault, type Chunk } from "./lib/vault.js";
+import type { Chunk } from "./lib/types.js";
+import { chunkNote, loadVault } from "./lib/vault.js";
 
 async function main() {
   const notes = await loadVault(requireVaultPath());

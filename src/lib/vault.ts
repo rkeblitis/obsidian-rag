@@ -1,22 +1,7 @@
-/**
- * Shared vault I/O: recursive .md discovery, load notes, boundary-aware chunking.
- * Used by list-notes, load-vault, chunk, and embed-vault so walk/chunk logic stays in one place.
- */
-
+/** Reads the vault from disk: recursive .md discovery, load note bodies, boundary-aware chunking. */
 import { readdir, readFile } from "node:fs/promises";
 import { basename, join } from "node:path";
-
-export type Note = {
-  path: string;
-  content: string;
-};
-
-export type Chunk = {
-  noteTitle: string;
-  notePath: string;
-  chunkIndex: number;
-  text: string;
-};
+import type { Chunk, Note } from "./types.js";
 
 /** Skip stubs / near-empty notes (non-whitespace length). */
 export const MIN_NOTE_CONTENT_LENGTH = 50;
