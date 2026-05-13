@@ -1,3 +1,8 @@
+/**
+ * Index build CLI: load vault notes (./lib/vault.ts), chunk, embed each chunk via Ollama, write embeddings.json.
+ * For debugging and learnings
+ * Not imported elsewhere — run directly, e.g. `npx tsx src/embed-vault.ts` (requires .env VAULT_PATH, Ollama up).
+ */
 import { writeFile } from "node:fs/promises";
 import { relative } from "node:path";
 import {
@@ -49,6 +54,7 @@ async function embedChunks(chunks: Chunk[]): Promise<EmbeddedChunk[]> {
   return results;
 }
 
+// Build or Refresh the index
 async function main() {
   const vaultPath = requireVaultPath();
   const outputPath = resolveUserPath(embeddingsFilePath());
@@ -66,9 +72,10 @@ async function main() {
     ...c,
     notePath: relative(vaultPath, c.notePath),
   }));
-  console.log(`Created ${chunksForIndex.length} chunks\n`);
 
+  console.log(`Created ${chunksForIndex.length} chunks\n`);
   console.log(`Embedding ${chunksForIndex.length} chunks...`);
+  
   const startTime = Date.now();
   const embedded = await embedChunks(chunksForIndex);
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);

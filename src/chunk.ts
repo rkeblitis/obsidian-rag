@@ -9,22 +9,19 @@ async function main() {
   console.log(`Loaded ${notes.length} notes\n`);
 
   // Chunk every note
-
   const allChunks: Chunk[] = [];
   for (const note of notes) {
     allChunks.push(...chunkNote(note));
   }
 
-  console.log(`Created ${allChunks.length} chunks total\n`);
   // Stats
-
+  console.log(`Created ${allChunks.length} chunks total\n`);
   const noteChunkCounts = new Map<string, number>();
   for (const chunk of allChunks) {
     noteChunkCounts.set(chunk.noteTitle, (noteChunkCounts.get(chunk.noteTitle) ?? 0) + 1);
   }
 
   // Find notes that were split into multiple chunks
-
   const splitNotes = [...noteChunkCounts.entries()]
     .filter(([_, count]) => count > 1)
     .sort((a, b) => b[1] - a[1]);

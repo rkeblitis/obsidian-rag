@@ -1,3 +1,8 @@
+/**
+ * Retrieval debug CLI: embed the question, rank all chunks by cosine similarity, print top matches (no LLM answer).
+ * For debugging and learnings
+ * Not imported elsewhere — run directly, e.g. `npx tsx src/query.ts "your question"`.
+ */
 import { readFile } from "node:fs/promises";
 import { embeddingsFilePath, ollamaBaseUrl, resolveUserPath } from "./config.js";
 

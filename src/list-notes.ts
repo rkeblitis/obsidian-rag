@@ -1,8 +1,12 @@
-import { readdir, stat } from "node:fs/promises";
+/**
+ * Vault explorer CLI: list markdown paths under VAULT_PATH and print sizes for the first few files.
+ * For debugging and learnings
+ * Not imported elsewhere — run directly, e.g. `npx tsx src/list-notes.ts`.
+ */
+import { stat } from "node:fs/promises";
 import { requireVaultPath } from "./config.js";
 import { findMarkdownFiles } from "./lib/vault.js";
 
-// Main Entry Point
 async function main() {
   const vaultPath = requireVaultPath();
   console.log("Scanning vault (path from VAULT_PATH in .env)...\n");

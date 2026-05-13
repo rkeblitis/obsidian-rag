@@ -1,3 +1,8 @@
+/**
+ * Full RAG CLI: load the embedding index, retrieve relevant chunks, stream an answer from Ollama (/api/generate).
+ * File is for debuging and learning mostly
+ * Not imported elsewhere — run directly, e.g. `npx tsx src/ask.ts "your question"`.
+ */
 import { readFile } from "node:fs/promises";
 import {
   embeddingsFilePath,

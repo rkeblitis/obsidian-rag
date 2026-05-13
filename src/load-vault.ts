@@ -1,3 +1,8 @@
+/**
+ * Vault stats CLI: load notes (./lib/vault.ts) and print aggregate length stats (no chunking or embeddings).
+ * For debugging and learnings
+ * Not imported elsewhere — run directly, e.g. `npx tsx src/load-vault.ts`.
+ */
 import { requireVaultPath } from "./config.js";
 import { loadVault } from "./lib/vault.js";
 
@@ -7,8 +12,8 @@ async function main() {
 
   const notes = await loadVault(vaultPath);
 
-  console.log(`Loaded ${notes.length} notes with real content\n`);
   // Show stats 
+  console.log(`Loaded ${notes.length} notes with real content\n`);
   const totalChars = notes.reduce((sum, n) => sum + n.content.length, 0);
   const avgChars = Math.round(totalChars / notes.length);
   const longest = notes.reduce((max, n) => (n.content.length > max.content.length ? n : max));
