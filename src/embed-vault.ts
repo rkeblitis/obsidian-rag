@@ -1,8 +1,11 @@
 import { readdir, readFile, writeFile } from "node:fs/promises";
-import { join, basename } from "node:path";
-
-const VAULT_PATH = "/Users/rachellekeblitis/The Garden";
-const OUTPUT_FILE = "embeddings.json";
+import { join, basename, relative } from "node:path";
+import {
+  embeddingsFilePath,
+  ollamaBaseUrl,
+  requireVaultPath,
+  resolveUserPath,
+} from "./config.js";
 const CHUNK_SIZE = 1000;
 const CHUNK_OVERLAP = 100;
 
@@ -109,7 +112,7 @@ function chunkNote(note: Note): Chunk[] {
 // --- New: embedding logic ---
 
 async function embed(text: string): Promise<number[]> {
-  const response = await fetch("http://localhost:11434/api/embeddings", {
+  const response = await fetch(`${ollamaBaseUrl()}/api/embeddings`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -148,8 +151,10 @@ async function embedChunks(chunks: Chunk[]): Promise<EmbeddedChunk[]> {
 // --- Main ---
 
 async function main() {
-  console.log(`Loading vault from ${VAULT_PATH}...`);
-  const notes = await loadVault(VAULT_PATH);
+  const vaultPath = requireVaultPath();
+  const outputPath = resolveUserPath(embeddingsFilePath());
+  console.log("Loading vault (path from VAULT_PATH in .env)...");
+  const notes = await loadVault(vaultPath);
   console.log(`Loaded ${notes.length} notes\n`);
 
   console.log(`Chunking...`);
@@ -157,17 +162,21 @@ async function main() {
   for (const note of notes) {
     allChunks.push(...chunkNote(note));
   }
-  console.log(`Created ${allChunks.length} chunks\n`);
+  const chunksForIndex = allChunks.map(c => ({
+    ...c,
+    notePath: relative(vaultPath, c.notePath),
+  }));
+  console.log(`Created ${chunksForIndex.length} chunks\n`);
 
-  console.log(`Embedding ${allChunks.length} chunks...`);
+  console.log(`Embedding ${chunksForIndex.length} chunks...`);
   const startTime = Date.now();
-  const embedded = await embedChunks(allChunks);
+  const embedded = await embedChunks(chunksForIndex);
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
   console.log(`Done in ${elapsed}s\n`);
 
   // Save to disk
-  console.log(`Saving to ${OUTPUT_FILE}...`);
-  await writeFile(OUTPUT_FILE, JSON.stringify(embedded, null, 2));
+  console.log(`Saving to ${outputPath}...`);
+  await writeFile(outputPath, JSON.stringify(embedded, null, 2));
 
   // Stats
   const fileSize = (Buffer.byteLength(JSON.stringify(embedded)) / 1024 / 1024).toFixed(2);

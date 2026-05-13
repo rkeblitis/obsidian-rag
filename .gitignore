@@ -4,3 +4,4 @@ node_modules/
 !.env.example
 *.local
 embeddings.json
+vault-overview.local.md

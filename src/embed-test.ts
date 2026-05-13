@@ -13,8 +13,10 @@
 // The response shape matches what you expected
 // A 768-dimensional vector actually comes back
 
+import { ollamaBaseUrl } from "./config.js";
+
 async function embed(text: string): Promise<number[]> {
-  const response = await fetch("http://localhost:11434/api/embeddings", {
+  const response = await fetch(`${ollamaBaseUrl()}/api/embeddings`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

@@ -1,8 +1,6 @@
 import { readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
-
-// The path to your Obsidian vault
-const VAULT_PATH = "/Users/rachellekeblitis/The Garden";
+import { requireVaultPath } from "./config.js";
 
 // Recursively walk a directory and return paths to all .md files
 async function findMarkdownFiles(dir: string): Promise<string[]> {
@@ -29,9 +27,10 @@ async function findMarkdownFiles(dir: string): Promise<string[]> {
 
 // Main entry point
 async function main() {
-  console.log(`Scanning vault: ${VAULT_PATH}\n`);
+  const vaultPath = requireVaultPath();
+  console.log("Scanning vault (path from VAULT_PATH in .env)...\n");
 
-  const files = await findMarkdownFiles(VAULT_PATH);
+  const files = await findMarkdownFiles(vaultPath);
 
   console.log(`Found ${files.length} markdown files\n`);
 

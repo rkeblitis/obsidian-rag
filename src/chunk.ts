@@ -1,7 +1,6 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join, basename } from "node:path";
-
-const VAULT_PATH = "/Users/rachellekeblitis/The Garden";
+import { requireVaultPath } from "./config.js";
 
 // Chunking parameters — these are the knobs you'll tune later
 const CHUNK_SIZE = 1000;       // characters per chunk
@@ -123,7 +122,7 @@ function chunkNote(note: Note): Chunk[] {
 }
 
 async function main() {
-  const notes = await loadVault(VAULT_PATH);
+  const notes = await loadVault(requireVaultPath());
   console.log(`Loaded ${notes.length} notes\n`);
 
   // Chunk every note

@@ -1,7 +1,6 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-
-const VAULT_PATH = "/Users/rachellekeblitis/The Garden";
+import { requireVaultPath } from "./config.js";
 
 // A note = its path + its content
 type Note = {
@@ -46,9 +45,10 @@ async function loadVault(vaultPath: string): Promise<Note[]> {
 }
 
 async function main() {
-  console.log(`Loading vault from ${VAULT_PATH}...\n`);
+  const vaultPath = requireVaultPath();
+  console.log("Loading vault (path from VAULT_PATH in .env)...\n");
 
-  const notes = await loadVault(VAULT_PATH);
+  const notes = await loadVault(vaultPath);
 
   console.log(`Loaded ${notes.length} notes with real content\n`);
 
