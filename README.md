@@ -1,21 +1,25 @@
 # Obsidian RAG
 
-A local semantic search and Q&A system over my Obsidian vault. Runs entirely on
-my machine — no API keys, no cloud, no third-party data.
+Local semantic search and question answering over a **folder of Markdown notes**. Runs on your machine: no cloud APIs and no third-party access to note contents in the default setup.
+
+The name reflects how I use it (Obsidian vault); **any directory tree of `.md` files** works as `VAULT_PATH`. The code only cares about recursive `.md` discovery, chunking, and paths — not Obsidian-specific formats. Hidden directories (names starting with `.`, e.g. `.obsidian`, `.git`) are skipped. Markdown is read as **plain text** (e.g. `[[wikilinks]]` are not expanded to filenames).
+
+## Why this repo exists
+
+A **learning build**: I implemented the RAG path end to end (chunking, embeddings, similarity, prompts, streaming) so I could reason about each step, not only wire hosted services. Code stays small enough to read in one sitting.
+
+For **reviewers / future me**: see [Decision-log.md](./Decision-log.md) for tradeoffs and [ROADMAP.md](./ROADMAP.md) for backlog, including **tests, eval set**, and planned meta-question work.
 
 ## What it does
-Ask questions in plain English; get answers synthesized from my actual notes,
-with sources cited.
 
-- **Privacy-first default:** vault stays local; embeddings and generation go through [Ollama](https://ollama.com/) on your machine.
-- **Index:** walk markdown under `VAULT_PATH`, boundary-aware chunks (~1000 characters, overlap 100), embed each chunk, write `embeddings.json` (gitignored by default).
+- **Index:** walk Markdown under `VAULT_PATH`, boundary-aware chunks (~1000 characters, overlap 100), embed each chunk via Ollama, write `embeddings.json` (gitignored by default).
 - **Query:** embed the question with the **same** embedding model used at index time, rank chunks with cosine similarity, apply a similarity threshold, optionally call the LLM for a grounded answer with sources.
 
 ## How it works (short pipeline)
 
-1. Discover `.md` files under the vault (hidden directories like `.obsidian` skipped).
+1. Discover `.md` files under the vault root (hidden directories skipped).
 2. Load notes, drop very short stubs, split into chunks with paragraph / sentence / line / word friendly cut points (`src/lib/vault.ts`).
-3. Call Ollama `/api/embeddings` per chunk; store vectors plus note title, relative path, chunk index (`src/embed-vault.ts`).
+3. Call Ollama `/api/embeddings` per chunk; store vectors plus note title, path **relative to vault root**, chunk index (`src/embed-vault.ts`).
 4. At query time: embed the question, sort all chunks by cosine similarity (`src/lib/retrieve.ts`), filter by threshold, take top K (`src/query.ts`, `src/ask.ts`).
 5. In `ask.ts`: build a prompt with retrieved excerpts and optional vault overview text, stream `/api/generate` from Ollama.
 
@@ -33,7 +37,7 @@ npm install
 cp .env.example .env
 ```
 
-Edit `.env` and set at least `VAULT_PATH` to your Obsidian vault root (the folder that contains your notes).
+Edit `.env` and set `VAULT_PATH` to the **root folder** that contains your Markdown notes (your Obsidian vault root, or any equivalent tree).
 
 Pull the default models (names match [src/config.ts](./src/config.ts) defaults):
 
@@ -46,7 +50,7 @@ ollama pull llama3.2
 
 | Variable | Required | Default | Role |
 |----------|----------|---------|------|
-| `VAULT_PATH` | Yes (for vault scripts) | — | Root of your Obsidian vault |
+| `VAULT_PATH` | Yes (for vault scripts) | — | Root folder for markdown discovery |
 | `EMBEDDINGS_FILE` | No | `embeddings.json` | Where the index is written / read |
 | `OLLAMA_BASE_URL` | No | `http://localhost:11434` | Ollama HTTP base |
 | `EMBEDDING_MODEL` | No | `nomic-embed-text` | Must match index and query time |
@@ -61,6 +65,7 @@ Run from the repo root with `npx tsx`:
 
 | Command | Purpose |
 |---------|---------|
+| `npm test` | Unit tests (cosine similarity, chunking); no Ollama |
 | `npx tsx src/list-notes.ts` | List markdown paths under the vault |
 | `npx tsx src/load-vault.ts` | Load vault, print note count |
 | `npx tsx src/chunk.ts` | Chunk entire vault, print stats and sample output |
@@ -86,15 +91,15 @@ src/
   query.ts               # CLI: debug retrieval
   ask.ts                 # CLI: RAG + generate
   tests/eval.ts          # CLI: vault-specific eval cases
+  tests/unit/            # npm test — pure functions
 ```
 
 ## Scope and honesty
 
-- **No automated test suite yet** (`npm test` is still a placeholder). The highest-value next step would be unit tests for `similarity` and `chunkNote`, plus optional fixture-based checks for the index file shape.
-- **Eval script** is intentionally manual: expected note titles are specific to whoever runs it.
-- **Scale:** in-memory scan over a JSON index is fine for hundreds or low thousands of chunks; a vector DB would be the next lever if latency or RAM became an issue.
+- **Unit tests** cover `similarity` and `chunkNote`; they do not replace a **retrieval eval** on your real index (`tests/eval.ts`).
+- **Scale:** in-memory scan over a JSON index is fine for hundreds or low thousands of chunks; a vector DB is the next lever if latency or RAM becomes an issue.
 
 ## Further reading
 
-- [Decision-log.md](./Decision-log.md) — dated tradeoffs and “when I would change this.”
-- [WhereILeftOff.md](./WhereILeftOff.md) — working notes from build sessions (may lag `main`).
+- [Decision-log.md](./Decision-log.md) — dated tradeoffs and when to reopen them.
+- [ROADMAP.md](./ROADMAP.md) — backlog, current snapshot + session notes 

@@ -1,93 +1,43 @@
 # Decision log
 
 Purpose: capture **context, choice, and tradeoff** for decisions that are not obvious from the code alone. Useful for **future me** (“why did I do that?”) and for **reviewers** who want signal beyond “it works on my machine.”
-
-Conventions:
-
-- Prefer **problem → decision → tradeoff → reopen when** so skimming is fast.
-- Keep claims falsifiable (e.g. link rough scale: chunk count, not “fast” in the abstract).
-
 ---
 
-## 2026-05-12
+## 2026-05-12 — first pass architecture
 
-### TypeScript on Node instead of Python
+### TypeScript instead of Python
 
-| | |
-|---|---|
-| **Problem** | Implement RAG with a stack I want to brush up on. |
-| **Decision** | TypeScript, ESM, `tsx` for scripts, strict compiler options. |
-| **Tradeoff** | More ceremony than a notebook; on the flip side, types help when shapes like `EmbeddedChunk` cross file boundaries. |
-| **Reopen when** | Heavy numeric or ML experimentation might push a slice to Python; the API boundaries (index JSON shape, env config) would stay stable. |
+Python plus a notebook would have been the fastest path for one-off experiments. I chose **TypeScript on Node** with ESM and `tsx` because I wanted the same language I use in product work, with types that travel cleanly across “load a note,” “chunk,” “embedded row,” and CLI entrypoints. The cost is more boilerplate than a notebook. If a future step needs heavy numeric work, I would still keep a thin boundary: stable JSON for the index and env for config, and only the experimental slice in another runtime.
 
-### Ollama for embeddings and generation
+### Ollama for both embeddings and the answer model
 
-| | |
-|---|---|
-| **Problem** | Personal vault: minimize data leaving the machine; keep iteration cheap. |
-| **Decision** | Ollama HTTP APIs: `/api/embeddings` for vectors, `/api/generate` for streaming answers in `ask.ts`. |
-| **Tradeoff** | Quality and instruction-following are below frontier hosted models; operational burden is local GPU/RAM and model pulls. |
-| **Reopen when** | Need stronger answers or tool use: could swap only the generate step, keep local embeddings, or move to a hosted stack with explicit data policy. |
+**Embeddings** here means: send text to a model, get back a fixed-length list of numbers (a vector). Similar questions and similar note passages tend to land as vectors pointing roughly the same direction in that high-dimensional space. **Generation** is the separate step where `ask.ts` streams an answer from the LLM using retrieved text as context.
 
-### Chunk size ~1000 characters, overlap 100, boundary-aware splits
+I use **Ollama** for both steps so nothing in the default setup phones home to a hosted API. That is great for personal notes and cheap iteration; the tradeoff is you are not on the cutting edge of model quality compared to a frontier hosted chat API. Model names live in env (`EMBEDDING_MODEL`, `GENERATE_MODEL` in `config.ts`) so I can swap deliberately. One thing the code does **not** automatically enforce: if you change the embedding model, you must **rebuild the index** (`embed-vault`). Otherwise you are comparing vectors from different spaces and the scores are meaningless. A stricter version of this project would write the embed model name into each row in `embeddings.json` and refuse to query if it does not match.
 
-| | |
-|---|---|
-| **Problem** | Embeddings need bounded text; naive fixed windows cut mid word or mid thought. |
-| **Decision** | Target window ~1000 chars with 100 overlap; search backward for paragraph, sentence, line, then space before the cut (`src/lib/vault.ts`). |
-| **Tradeoff** | Heuristic, not tokenizer-aligned to `nomic-embed-text`; good enough for learning and mid-size notes. |
-| **Reopen when** | Switching embedding models with a hard token limit: consider tokenizer-based chunking or smaller `CHUNK_SIZE`. |
+### How big each text slice is (chunking)
 
-### Cosine similarity and a fixed threshold (0.55)
+Models that produce embeddings expect bounded input, so we chop each markdown file into chunks. I landed on about **1000 characters** with **100 characters of overlap** between consecutive windows so a sentence that straddles a boundary is not lost entirely. The splitter tries to cut on nicer boundaries first (paragraph break, then sentence-ish, then line, then space) instead of blind fixed-width slices that split mid-word. That logic lives in `src/lib/vault.ts`.
 
-| | |
-|---|---|
-| **Problem** | Turn vectors into a ranked list and avoid surfacing weak matches as “evidence.” |
-| **Decision** | Cosine similarity (direction, not raw dot product); empirically `0.55` separated “good” vs “no confident match” on early queries. |
-| **Tradeoff** | Threshold is dataset and model dependent; not portable if the embedding space shifts. |
-| **Reopen when** | Change embedding model, chunk size, or domain: re-calibrate with `query.ts` and/or `tests/eval.ts`, not by copying the old number. |
+This is a **heuristic**, not a tokenizer-perfect match to the embedding model’s token limit. For a learning repo and normal-sized notes it has been fine. I would revisit if I switched to a model with a hard small context window or if I saw systematic truncation weirdness in the vectors.
 
-### JSON file index instead of a vector database
+### Cosine similarity and the 0.55 cutoff
 
-| | |
-|---|---|
-| **Problem** | Persist embeddings and metadata for retrieval. |
-| **Decision** | Single `embeddings.json` array loaded into memory; linear scan + sort. |
-| **Tradeoff** | Simple and debuggable; RAM and CPU scale with chunk count; no incremental updates or ANN. |
-| **Reopen when** | Roughly tens of thousands of chunks, multi-user serving, or need for incremental indexing: SQLite + `vec0`, LanceDB, Qdrant, etc. |
+Once the question and each note chunk are vectors, retrieval is “score every chunk, sort, take the top few.” **Cosine similarity** compares the *direction* of two vectors (after normalizing length), not raw dot product. Practically: you do not want a longer chunk to win just because its vector has bigger numbers if the *meaning* match is the same.
 
-### Relative `notePath` in the index
+The **0.55** number is not sacred. I picked it after eyeballing scores: real hits in my vault tended to land higher, and “no good answer in the corpus” queries topped out lower. Any fixed threshold is sensitive to your notes, your questions, and especially **which embedding model** you use. If any of those change, I would re-tune using `query.ts` or the manual eval script, not copy the old constant over by reflex.
 
-| | |
-|---|---|
-| **Problem** | Absolute paths in a committed or shared artifact leak machine layout; couples index to one laptop. |
-| **Decision** | At index time, store paths relative to `VAULT_PATH` (`src/embed-vault.ts`). |
-| **Tradeoff** | Reopening the vault from a different root is fine as long as `VAULT_PATH` points at the same tree. |
-| **Reopen when** | Multi-vault or migration tooling: might add explicit vault id in each row. |
+### Why the index is a JSON file, not a vector database
 
-### Shared retrieval helper (`src/lib/retrieve.ts`)
+For my vault size (on the order of hundreds of chunks, not millions), loading `embeddings.json` into memory and doing a linear scan plus sort is simple, easy to inspect with `jq` or a text editor, and fast enough. A proper **vector database** (or approximate nearest neighbor index) buys you sublinear search and nicer operational features when data gets big or you serve multiple users. I would add one when cold start RAM, latency, or incremental updates become real problems—not before.
 
-| | |
-|---|---|
-| **Problem** | Same ranking logic lived in `ask.ts`, `query.ts`, and `tests/eval.ts`; `query.ts` could show top-K hits below the similarity cutoff. |
-| **Decision** | One function: rank all chunks by cosine score descending; callers filter / slice (threshold and top-K only in CLIs). |
-| **Tradeoff** | Always O(chunks) work per question; acceptable at current scale. |
-| **Reopen when** | ANN or batching: replace inner loop, keep the same output shape for callers. |
+### Relative paths inside the index
 
-### Embedding and generate model names from env
+Storing **absolute** file paths in `embeddings.json` would leak machine layout and break the moment you move the vault to a different folder. At index time we store paths **relative to** `VAULT_PATH` (`embed-vault.ts`). As long as you point `VAULT_PATH` at the same tree of files, retrieval still lines up with your disk. If this ever grew into multi-vault or “ship an index as an artifact” territory, I would probably add an explicit vault id per row instead of implying it from env alone.
 
-| | |
-|---|---|
-| **Problem** | Hardcoded model strings drift from what is actually pulled; easy to index with one model and query with another by mistake. |
-| **Decision** | `EMBEDDING_MODEL` and `GENERATE_MODEL` in `src/config.ts`, used by `embedText` default and `ask.ts` generate body. |
-| **Tradeoff** | Still possible to misconfigure env; pairing “rebuild index after embed model change” is a process, not enforced in code. |
-| **Reopen when** | Could add a small `embeddingModel` field per index row and assert at load time. |
+### How I check quality: eval script vs unit tests
 
-### Manual eval (`src/tests/eval.ts`) vs automated tests
+**Unit tests** (`npm test`, under `src/tests/unit/`) answer: did we break pure logic—cosine math, chunking invariants? They do not talk to Ollama and they do not need my private notes.
 
-| | |
-|---|---|
-| **Problem** | Need some signal that retrieval finds the right notes without maintaining a golden dataset in repo. |
-| **Decision** | Script with editable `TEST_CASES` (question + expected note titles); hit rate printed. No CI dependency on a private vault. |
-| **Tradeoff** | Not reproducible for external reviewers unless they rewrite cases for their vault. |
-| **Reopen when** | Add **unit** tests for pure functions (`similarity`, `chunkNote`) plus optional tiny public fixture index for smoke tests. |
+**`src/tests/eval.ts`** is different: it is a small, hand-maintained list of questions and “I expect at least one of these note titles to appear in the top K.” That measures whether *this* index and *this* model behave on *my* vault. It is valuable for tuning; it is a poor fit for a public CI gate unless someone checks in a tiny fake vault and matching expectations.
+

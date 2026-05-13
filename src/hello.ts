@@ -1,1 +1,0 @@
-console.log("hello Chell lets make our first RAG!")

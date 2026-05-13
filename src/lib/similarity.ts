@@ -3,7 +3,7 @@
  * Same-length arrays only. Result is roughly between -1 and 1; higher means more alike
  * (1 = same direction, 0 = unrelated directions).
  *
- * Note to remeber: This is being used to sort vault chunks by how close they are to your question embedding.
+ * Note to remember: This is being used to sort vault chunks by how close they are to your question embedding.
  * Cosine is basically "dot product after shrinking each vector to length 1," so a chunk's
  * embedding being numerically bigger does not by itself rank it higher.
  * If you ever switched to plain dot product instead, longer vectors could get unfairly
