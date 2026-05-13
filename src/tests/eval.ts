@@ -1,6 +1,5 @@
-import { readFile } from "node:fs/promises";
-import { embeddingsFilePath, resolveUserPath } from "../config.js";
 import { embedText } from "../lib/ollama/embed.js";
+import { loadEmbeddedChunks } from "../lib/embeddings-index.js";
 import type { EmbeddedChunk } from "../lib/types.js";
 
 type TestCase = {
@@ -63,8 +62,7 @@ async function evaluateOne(chunks: EmbeddedChunk[], testCase: TestCase, topK: nu
 }
 
 async function main() {
-  const raw = await readFile(resolveUserPath(embeddingsFilePath()), "utf-8");
-  const chunks: EmbeddedChunk[] = JSON.parse(raw);
+  const chunks = await loadEmbeddedChunks();
 
   console.log(`Running ${TEST_CASES.length} test cases...\n`);
 

@@ -3,9 +3,8 @@
  * For debugging and learnings
  * Not imported elsewhere — run directly, e.g. `npx tsx src/query.ts "your question"`.
  */
-import { readFile } from "node:fs/promises";
-import { embeddingsFilePath, resolveUserPath } from "./config.js";
 import { embedText } from "./lib/ollama/embed.js";
+import { loadEmbeddedChunks } from "./lib/embeddings-index.js";
 import type { EmbeddedChunk } from "./lib/types.js";
 
 // Cosine similarity: measures how similar two vectors are in direction.
@@ -25,16 +24,10 @@ function cosineSimilarity(a: number[], b: number[]): number {
   return dotProduct / (Math.sqrt(magnitudeA) * Math.sqrt(magnitudeB));
 }
 
-async function loadEmbeddings(): Promise<EmbeddedChunk[]> {
-  const raw = await readFile(resolveUserPath(embeddingsFilePath()), "utf-8");
-  return JSON.parse(raw) as EmbeddedChunk[];
-}
-
 async function query(question: string, topK: number = 5, threshold: number = 0.55): Promise<void> {
   console.log(`\nQuestion: "${question}"\n`);
 
-  // Load the index
-  const chunks = await loadEmbeddings();
+  const chunks = await loadEmbeddedChunks();
 
   // Embed the question
   const questionVector = await embedText(question);

@@ -3,15 +3,13 @@
  * File is for debuging and learning mostly
  * Not imported elsewhere — run directly, e.g. `npx tsx src/ask.ts "your question"`.
  */
-import { readFile } from "node:fs/promises";
 import {
-  embeddingsFilePath,
   loadVaultOverviewForPrompt,
   ollamaBaseUrl,
-  resolveUserPath,
 } from "./config.js";
-import type { EmbeddedChunk } from "./lib/types.js";
+import { loadEmbeddedChunks } from "./lib/embeddings-index.js";
 import { embedText } from "./lib/ollama/embed.js";
+import type { EmbeddedChunk } from "./lib/types.js";
 
 const SIMILARITY_THRESHOLD = 0.55;
 const TOP_K = 5;
@@ -30,13 +28,8 @@ function cosineSimilarity(a: number[], b: number[]): number {
   return dotProduct / (Math.sqrt(magnitudeA) * Math.sqrt(magnitudeB));
 }
 
-async function loadEmbeddings(): Promise<EmbeddedChunk[]> {
-  const raw = await readFile(resolveUserPath(embeddingsFilePath()), "utf-8");
-  return JSON.parse(raw) as EmbeddedChunk[];
-}
-
 async function retrieve(question: string): Promise<{ chunk: EmbeddedChunk; score: number }[]> {
-  const chunks = await loadEmbeddings();
+  const chunks = await loadEmbeddedChunks();
   const questionVector = await embedText(question);
 
   const scored = chunks

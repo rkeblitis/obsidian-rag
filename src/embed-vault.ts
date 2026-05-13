@@ -6,9 +6,8 @@
 import { writeFile } from "node:fs/promises";
 import { relative } from "node:path";
 import {
-  embeddingsFilePath,
   requireVaultPath,
-  resolveUserPath,
+  resolvedEmbeddingsFilePath,
 } from "./config.js";
 import type { Chunk, EmbeddedChunk } from "./lib/types.js";
 import { embedText } from "./lib/ollama/embed.js";
@@ -36,7 +35,7 @@ async function embedChunks(chunks: Chunk[]): Promise<EmbeddedChunk[]> {
 // Build or Refresh the index
 async function main() {
   const vaultPath = requireVaultPath();
-  const outputPath = resolveUserPath(embeddingsFilePath());
+  const outputPath = resolvedEmbeddingsFilePath();
   console.log("Loading vault (path from VAULT_PATH in .env)...");
 
   const notes = await loadVault(vaultPath);

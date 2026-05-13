@@ -30,6 +30,11 @@ export function resolveUserPath(pathish: string): string {
   return isAbsolute(pathish) ? pathish : resolve(process.cwd(), pathish);
 }
 
+/** Resolve `embeddingsFilePath()` against cwd (absolute env paths unchanged). */
+export function resolvedEmbeddingsFilePath(): string {
+  return resolveUserPath(embeddingsFilePath());
+}
+
 function vaultOverviewFileFromEnv(): string | undefined {
   const p = process.env["VAULT_OVERVIEW_FILE"]?.trim();
   return p || undefined;
