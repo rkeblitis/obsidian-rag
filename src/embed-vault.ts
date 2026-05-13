@@ -1,115 +1,16 @@
-import { readdir, readFile, writeFile } from "node:fs/promises";
-import { join, basename, relative } from "node:path";
+import { writeFile } from "node:fs/promises";
+import { relative } from "node:path";
 import {
   embeddingsFilePath,
   ollamaBaseUrl,
   requireVaultPath,
   resolveUserPath,
 } from "./config.js";
-const CHUNK_SIZE = 1000;
-const CHUNK_OVERLAP = 100;
-
-type Note = {
-  path: string;
-  content: string;
-};
-
-type Chunk = {
-  noteTitle: string;
-  notePath: string;
-  chunkIndex: number;
-  text: string;
-};
+import { chunkNote, loadVault, type Chunk } from "./lib/vault.js";
 
 type EmbeddedChunk = Chunk & {
   embedding: number[];
 };
-
-// --- File loading and chunking (same as before) ---
-
-async function findMarkdownFiles(dir: string): Promise<string[]> {
-  const results: string[] = [];
-  const entries = await readdir(dir, { withFileTypes: true });
-  for (const entry of entries) {
-    const fullPath = join(dir, entry.name);
-    if (entry.name.startsWith(".")) continue;
-    if (entry.isDirectory()) {
-      results.push(...await findMarkdownFiles(fullPath));
-    } else if (entry.isFile() && entry.name.endsWith(".md")) {
-      results.push(fullPath);
-    }
-  }
-  return results;
-}
-
-async function loadVault(vaultPath: string): Promise<Note[]> {
-  const filePaths = await findMarkdownFiles(vaultPath);
-  const notes: Note[] = [];
-  for (const path of filePaths) {
-    const content = await readFile(path, "utf-8");
-    if (content.trim().length < 50) continue;
-    notes.push({ path, content });
-  }
-  return notes;
-}
-
-function chunkNote(note: Note): Chunk[] {
-  const chunks: Chunk[] = [];
-  const noteTitle = basename(note.path, ".md");
-  const content = note.content;
-
-  if (content.length <= CHUNK_SIZE) {
-    chunks.push({ noteTitle, notePath: note.path, chunkIndex: 0, text: content });
-    return chunks;
-  }
-
-  let start = 0;
-  let chunkIndex = 0;
-
-  while (start < content.length) {
-    const idealEnd = start + CHUNK_SIZE;
-
-    if (idealEnd >= content.length) {
-      chunks.push({
-        noteTitle,
-        notePath: note.path,
-        chunkIndex,
-        text: content.slice(start),
-      });
-      break;
-    }
-
-    const minEnd = idealEnd - 200;
-    let end = idealEnd;
-
-    const boundaries = [
-      content.lastIndexOf("\n\n", idealEnd),
-      content.lastIndexOf(". ", idealEnd),
-      content.lastIndexOf("\n", idealEnd),
-      content.lastIndexOf(" ", idealEnd),
-    ];
-
-    for (const boundary of boundaries) {
-      if (boundary > minEnd && boundary > start) {
-        end = boundary;
-        break;
-      }
-    }
-
-    const text = content.slice(start, end).trim();
-    if (text.length > 0) {
-      chunks.push({ noteTitle, notePath: note.path, chunkIndex, text });
-      chunkIndex++;
-    }
-
-    start = end - CHUNK_OVERLAP;
-    if (start < 0) start = 0;
-  }
-
-  return chunks;
-}
-
-// --- New: embedding logic ---
 
 async function embed(text: string): Promise<number[]> {
   const response = await fetch(`${ollamaBaseUrl()}/api/embeddings`, {
@@ -148,16 +49,15 @@ async function embedChunks(chunks: Chunk[]): Promise<EmbeddedChunk[]> {
   return results;
 }
 
-// --- Main ---
-
 async function main() {
   const vaultPath = requireVaultPath();
   const outputPath = resolveUserPath(embeddingsFilePath());
   console.log("Loading vault (path from VAULT_PATH in .env)...");
+
   const notes = await loadVault(vaultPath);
   console.log(`Loaded ${notes.length} notes\n`);
 
-  console.log(`Chunking...`);
+  console.log("Chunking...");
   const allChunks: Chunk[] = [];
   for (const note of notes) {
     allChunks.push(...chunkNote(note));

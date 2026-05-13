@@ -1,37 +1,13 @@
 import { readdir, stat } from "node:fs/promises";
-import { join } from "node:path";
 import { requireVaultPath } from "./config.js";
+import { findMarkdownFiles } from "./lib/vault.js";
 
-// Recursively walk a directory and return paths to all .md files
-async function findMarkdownFiles(dir: string): Promise<string[]> {
-  const results: string[] = [];
-  const entries = await readdir(dir, { withFileTypes: true });
-
-  for (const entry of entries) {
-    const fullPath = join(dir, entry.name);
-
-    // Skip hidden folders like .obsidian, .trash, .git
-    if (entry.name.startsWith(".")) continue;
-
-    if (entry.isDirectory()) {
-      // Recurse into subfolders
-      const nested = await findMarkdownFiles(fullPath);
-      results.push(...nested);
-    } else if (entry.isFile() && entry.name.endsWith(".md")) {
-      results.push(fullPath);
-    }
-  }
-
-  return results;
-}
-
-// Main entry point
+// Main Entry Point
 async function main() {
   const vaultPath = requireVaultPath();
   console.log("Scanning vault (path from VAULT_PATH in .env)...\n");
 
   const files = await findMarkdownFiles(vaultPath);
-
   console.log(`Found ${files.length} markdown files\n`);
 
   // Print first 10 with their sizes
