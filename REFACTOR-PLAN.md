@@ -19,6 +19,20 @@ You can stop after any step; early steps already remove a lot of duplication wit
 
 ---
 
+## Repository privacy (GitHub)
+
+The numbered refactor steps focus on code structure. **They do not by themselves stop personal paths or note-derived data from appearing on GitHub** unless you wire config and ignores deliberately.
+
+- **Paths:** Prefer `VAULT_PATH` (and similar) from the environment or a **gitignored** local file (e.g. `.env`). Commit only an **`.env.example`** with placeholder names and no real usernames or folder names.
+- **Generated / private artifacts:** Add `.gitignore` entries for things like `embeddings.json` (embeds are derived from your vault; file can be large), any future local DB, and `.env`.
+- **Source code:** After moving to env-based config, remove hardcoded absolute paths from tracked files so history stays clean going forward.
+- **Eval / docs:** Note titles in test cases are usually fine; avoid committing long excerpts of note bodies or screenshots with paths if you care about leakage.
+- **If something was already pushed:** Removing it in a later commit does not erase git history; for sensitive paths you may need history rewriting (e.g. `git filter-repo`) — treat that as a separate, careful step.
+
+Tie this to **step 1 (config)** and **step 6 (polish)** when you implement.
+
+---
+
 ## Ordered steps
 
 ### 1. Single config
@@ -104,3 +118,4 @@ When a step is done, consider ticking it below or linking the PR / commit.
 - [ ] 5. Unified retrieval API (+ query labeling fix)  
 - [ ] 6. Project polish  
 - [ ] 7. Docs  
+- [ ] 8. Repo privacy: env-based paths, `.gitignore`, no secrets in tracked files (see section above)  
