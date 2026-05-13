@@ -25,6 +25,16 @@ export function ollamaBaseUrl(): string {
   return raw.replace(/\/$/, "");
 }
 
+/** Ollama model name for `/api/embeddings` (index + query). Default matches a common local embedding model. */
+export function embeddingModel(): string {
+  return process.env["EMBEDDING_MODEL"]?.trim() || "nomic-embed-text";
+}
+
+/** Ollama model name for `/api/generate` in ask.ts. */
+export function generateModel(): string {
+  return process.env["GENERATE_MODEL"]?.trim() || "llama3.2";
+}
+
 /** Resolve a path from env or CLI: absolute paths unchanged, else relative to cwd. */
 export function resolveUserPath(pathish: string): string {
   return isAbsolute(pathish) ? pathish : resolve(process.cwd(), pathish);

@@ -5,36 +5,23 @@
  */
 import { loadEmbeddedChunks } from "./lib/embeddings-index.js";
 import { embedText } from "./lib/ollama/embed.js";
-import { cosineSimilarity } from "./lib/similarity.js";
-import type { EmbeddedChunk } from "./lib/types.js";
+import { rankEmbeddedChunksByCosine } from "./lib/retrieve.js";
 
 async function query(question: string, topK: number = 5, threshold: number = 0.55): Promise<void> {
   console.log(`\nQuestion: "${question}"\n`);
 
   const chunks = await loadEmbeddedChunks();
-
-  // Embed the question
   const questionVector = await embedText(question);
-
-  // Score every chunk by similarity to the question
-  const scored = chunks.map(chunk => ({
-    chunk,
-    score: cosineSimilarity(questionVector, chunk.embedding),
-  }));
-
-  scored.sort((a, b) => b.score - a.score);
-  
-  // Filter by threshold
-  const relevant = scored.filter(r => r.score >= threshold);
+  const ranked = rankEmbeddedChunksByCosine(questionVector, chunks);
+  const relevant = ranked.filter(r => r.score >= threshold);
 
   if (relevant.length === 0) {
     console.log(`No chunks scored above ${threshold}. The vault probably doesn't contain a good answer to this question.\n`);
-    console.log(`(Top result was ${scored[0]!.score.toFixed(3)} — too low to trust.)\n`);
+    console.log(`(Top result was ${ranked[0]!.score.toFixed(3)} — too low to trust.)\n`);
     return;
   }
-  
-  // Sort by score, take top K
-  const topResults = scored.slice(0, topK);
+
+  const topResults = relevant.slice(0, topK);
   
   // Display results
   console.log(`Found ${relevant.length} relevant chunks (showing top ${topResults.length}):\n`);

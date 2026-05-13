@@ -1,16 +1,14 @@
 /**
  * POST /api/embeddings on local Ollama (`ollamaBaseUrl` from config). Checks HTTP status before parsing JSON.
  *
- * Note to remember: Cosine similarity assumes vectors from the same embedding model and dimension; mixing models
+ * Cosine similarity assumes vectors from the same embedding model and dimension; mixing models
  * in the index vs. at query time is not a meaningful comparison.
  */
-import { ollamaBaseUrl } from "../../config.js";
-
-const DEFAULT_EMBED_MODEL = "nomic-embed-text";
+import { embeddingModel, ollamaBaseUrl } from "../../config.js";
 
 export async function embedText(
   prompt: string,
-  model: string = DEFAULT_EMBED_MODEL,
+  model: string = embeddingModel(),
 ): Promise<number[]> {
   const response = await fetch(`${ollamaBaseUrl()}/api/embeddings`, {
     method: "POST",

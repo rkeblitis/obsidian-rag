@@ -1,6 +1,6 @@
 import { loadEmbeddedChunks } from "../lib/embeddings-index.js";
 import { embedText } from "../lib/ollama/embed.js";
-import { cosineSimilarity } from "../lib/similarity.js";
+import { rankEmbeddedChunksByCosine } from "../lib/retrieve.js";
 import type { EmbeddedChunk } from "../lib/types.js";
 
 type TestCase = {
@@ -37,14 +37,11 @@ const TEST_CASES: TestCase[] = [
 
 async function evaluateOne(chunks: EmbeddedChunk[], testCase: TestCase, topK: number = 5): Promise<boolean> {
   const questionVector = await embedText(testCase.question);
-
-  const scored = chunks
-    .map(chunk => ({ chunk, score: cosineSimilarity(questionVector, chunk.embedding) }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, topK);
+  const ranked = rankEmbeddedChunksByCosine(questionVector, chunks);
+  const top = ranked.slice(0, topK);
 
   // Did at least one expected note appear in the top K?
-  const retrievedTitles = new Set(scored.map(r => r.chunk.noteTitle));
+  const retrievedTitles = new Set(top.map(r => r.chunk.noteTitle));
   const hit = testCase.expectedNotes.some(expected => retrievedTitles.has(expected));
 
   return hit;

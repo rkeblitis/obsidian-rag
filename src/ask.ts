@@ -4,31 +4,24 @@
  * Not imported elsewhere — run directly, e.g. `npx tsx src/ask.ts "your question"`.
  */
 import {
+  generateModel,
   loadVaultOverviewForPrompt,
   ollamaBaseUrl,
 } from "./config.js";
 import { loadEmbeddedChunks } from "./lib/embeddings-index.js";
 import { embedText } from "./lib/ollama/embed.js";
-import { cosineSimilarity } from "./lib/similarity.js";
-import type { EmbeddedChunk } from "./lib/types.js";
+import { rankEmbeddedChunksByCosine, type ScoredEmbeddedChunk } from "./lib/retrieve.js";
 
 const SIMILARITY_THRESHOLD = 0.55;
 const TOP_K = 5;
 
 // --- Retrieval (same as before) ---
 
-async function retrieve(question: string): Promise<{ chunk: EmbeddedChunk; score: number }[]> {
+async function retrieve(question: string): Promise<ScoredEmbeddedChunk[]> {
   const chunks = await loadEmbeddedChunks();
   const questionVector = await embedText(question);
-
-  const scored = chunks
-    .map(chunk => ({
-      chunk,
-      score: cosineSimilarity(questionVector, chunk.embedding),
-    }))
-    .sort((a, b) => b.score - a.score);
-
-  return scored
+  const ranked = rankEmbeddedChunksByCosine(questionVector, chunks);
+  return ranked
     .filter(r => r.score >= SIMILARITY_THRESHOLD)
     .slice(0, TOP_K);
 }
@@ -38,7 +31,7 @@ async function retrieve(question: string): Promise<{ chunk: EmbeddedChunk; score
 
 function buildPrompt(
   question: string,
-  retrieved: { chunk: EmbeddedChunk; score: number }[],
+  retrieved: ScoredEmbeddedChunk[],
   vaultOverview: string,
 ): string {
   const context = retrieved
@@ -69,7 +62,7 @@ async function generate(prompt: string): Promise<void> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "llama3.2",
+      model: generateModel(),
       prompt,
       stream: true,
     }),
