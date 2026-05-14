@@ -1,4 +1,5 @@
 # Obsidian RAG
+**Retrieve-then-generate** over your own Markdown: embeddings find relevant passages, a **local LLM** (via Ollama) turns them into a streamed answer with citations: the same idea as grounded assistants over private docs, just small and fully on your machine (no cloud APIs in the default setup).
 
 ## Why this repo exists
 
@@ -42,8 +43,6 @@ Pull two kinds of models: an **embedding** model (vectors for search) and a **ge
 ollama pull nomic-embed-text
 ollama pull llama3.2
 ```
-
-**Retrieve-then-generate** over your own Markdown: embeddings find relevant passages, a **local LLM** (via Ollama) turns them into a streamed answer with citations: the same idea as grounded assistants over private docs, just small and fully on your machine (no cloud APIs in the default setup).
 
 You can use **`query.ts`** for retrieval-only (ranked chunks, no LLM) when debugging; **`ask.ts`** is the full path including generation.
 
