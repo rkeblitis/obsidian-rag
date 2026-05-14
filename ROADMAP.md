@@ -1,16 +1,5 @@
 # Roadmap and backlog
 
-Priorities will update when focus shifts.
-
-## Tests vs eval (terminology)
-
-| | **Automated tests** (e.g. `npm test`) | **Eval set** (e.g. `src/tests/eval.ts`) |
-|---|---|---|
-| **Question** | Did we break the **code**? | Is the **system** (models + index + threshold) good enough on **your** notes? |
-| **Passes when** | Deterministic outputs match assertions (pure math, chunk shapes). | Retrieved titles overlap your expected note titles for hand-picked questions. |
-| **CI** | Yes: no network, no private vault. | Usually **manual** or a private job: cases embed your note titles and embedding model. |
-| **Examples here** | `src/tests/unit/`: cosine, `chunkNote` fixtures. | Edit `TEST_CASES` in `src/tests/eval.ts`, run against your `embeddings.json`. |
-
 ## Near-term (engineering)
 
 - [x] Minimal **unit tests** (`cosineSimilarity`, `chunkNote`) via `npm test`.
@@ -51,9 +40,9 @@ Priorities will update when focus shifts.
 - Expose `searchVaultNotes` (and optionally `askVault`) as **MCP tools** so an IDE agent can query your vault without pasting files. Keeps `VAULT_PATH` and index on your machine; the agent only sees tool results you define.
 - Fits "agents" in the sense people mean in 2026: external orchestrator plus your vault as a tool server.
 
-### 5. **Cursor / repo hygiene** (still worth doing)
+## Tooling ("agents")
 
-- [ ] Rules or skills under `.cursor/` so agents respect `VAULT_PATH`, never commit `embeddings.json`, respect `.env`, and run `npm test` after refactors.
+- [ ] **Cursor / IDE agents:** rules or skills so agents respect `VAULT_PATH`, never commit `embeddings.json`, respect `.env`, and run `npm test` after refactors (repo-specific workflow; lives in `.cursor/` if you add it).
 
 ---
 

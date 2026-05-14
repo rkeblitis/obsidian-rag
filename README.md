@@ -10,7 +10,7 @@ The name reflects how I use it (Obsidian vault); **any directory tree of `.md` f
 
 A **learning build**: I implemented the full path end to end: chunking, embeddings, similarity retrieval, **prompt assembly, and streaming LLM output**, so I could reason about each step and gain insight into data quality and pitfall that are hard to learn by just wiring out-of-the-box solutions. Code stays small enough to read in one sitting.
 
-For **reviewers / future me**: see [Decision-log.md](./Decision-log.md) for tradeoffs and [ROADMAP.md](./ROADMAP.md) for backlog, including **tests, eval set**, and planned meta-question work.
+For **reviewers / future me**: see [Decision-log.md](./Decision-log.md) for tradeoffs and [ROADMAP.md](./ROADMAP.md) for backlog, agent/tool direction, and session notes.
 
 ## What it does
 
