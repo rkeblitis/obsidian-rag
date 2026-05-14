@@ -1,27 +1,30 @@
 # Obsidian RAG
 
-Local semantic search and question answering over a **folder of Markdown notes**. Runs on your machine: no cloud APIs and no third-party access to note contents in the default setup.
+**Retrieve-then-generate** over your own Markdown: embeddings find relevant passages, a **local LLM** (via Ollama) turns them into a streamed answer with citations — the same idea as grounded assistants over private docs, just small and fully on your machine (no cloud APIs in the default setup).
+
+You can use **`query.ts`** for retrieval-only (ranked chunks, no LLM) when debugging; **`ask.ts`** is the full path including generation.
 
 The name reflects how I use it (Obsidian vault); **any directory tree of `.md` files** works as `VAULT_PATH`. The code only cares about recursive `.md` discovery, chunking, and paths — not Obsidian-specific formats. Hidden directories (names starting with `.`, e.g. `.obsidian`, `.git`) are skipped. Markdown is read as **plain text** (e.g. `[[wikilinks]]` are not expanded to filenames).
 
 ## Why this repo exists
 
-A **learning build**: I implemented the RAG path end to end (chunking, embeddings, similarity, prompts, streaming) so I could reason about each step, not only wire hosted services. Code stays small enough to read in one sitting.
+A **learning build**: I implemented the full path end to end — chunking, embeddings, similarity retrieval, **prompt assembly, and streaming LLM output** — so I could reason about each step and gain insight into data quality and pitfall that are hard to learn by just wiring out of the box soultions. Code stays small enough to read in one sitting.
 
 For **reviewers / future me**: see [Decision-log.md](./Decision-log.md) for tradeoffs and [ROADMAP.md](./ROADMAP.md) for backlog, including **tests, eval set**, and planned meta-question work.
 
 ## What it does
 
-- **Index:** walk Markdown under `VAULT_PATH`, boundary-aware chunks (~1000 characters, overlap 100), embed each chunk via Ollama, write `embeddings.json` (gitignored by default).
-- **Query:** embed the question with the **same** embedding model used at index time, rank chunks with cosine similarity, apply a similarity threshold, optionally call the LLM for a grounded answer with sources.
+- **Index:** walk Markdown under `VAULT_PATH`, boundary-aware chunks (~1000 characters, overlap 100), embed each chunk with Ollama’s **embedding** API, write `embeddings.json` (gitignored by default).
+- **Retrieve:** embed the question with the **same** embedding model as the index, rank chunks by cosine similarity, apply a similarity threshold, take top K (`query.ts` stops here).
+- **Generate (`ask.ts`):** pass the question plus retrieved excerpts (and optional vault overview) into Ollama’s **`/api/generate`** using `GENERATE_MODEL`; stream tokens to stdout and cite which notes were used.
 
 ## How it works (short pipeline)
 
 1. Discover `.md` files under the vault root (hidden directories skipped).
 2. Load notes, drop very short stubs, split into chunks with paragraph / sentence / line / word friendly cut points (`src/lib/vault.ts`).
 3. Call Ollama `/api/embeddings` per chunk; store vectors plus note title, path **relative to vault root**, chunk index (`src/embed-vault.ts`).
-4. At query time: embed the question, sort all chunks by cosine similarity (`src/lib/retrieve.ts`), filter by threshold, take top K (`src/query.ts`, `src/ask.ts`).
-5. In `ask.ts`: build a prompt with retrieved excerpts and optional vault overview text, stream `/api/generate` from Ollama.
+4. At query time: embed the question, sort chunks by cosine similarity (`src/lib/retrieve.ts`), filter by threshold, take top K.
+5. **`ask.ts` only:** build a prompt from those chunks (plus optional vault overview), call the **generation model** with streaming (`/api/generate`), so the answer is grounded in what was retrieved — not free‑standing model guesses alone.
 
 ## Requirements
 
@@ -39,7 +42,7 @@ cp .env.example .env
 
 Edit `.env` and set `VAULT_PATH` to the **root folder** that contains your Markdown notes (your Obsidian vault root, or any equivalent tree).
 
-Pull the default models (names match [src/config.ts](./src/config.ts) defaults):
+Pull two kinds of models: an **embedding** model (vectors for search) and a **generate** model (the LLM that writes answers). Defaults match [src/config.ts](./src/config.ts):
 
 ```bash
 ollama pull nomic-embed-text
@@ -72,7 +75,7 @@ Run from the repo root with `npx tsx`:
 | `npx tsx src/tests/embed-test.ts` | One embedding call against Ollama (sanity check) |
 | `npx tsx src/embed-vault.ts` | Build or refresh `embeddings.json` |
 | `npx tsx src/query.ts "your question"` | Retrieval only: top matches, no LLM |
-| `npx tsx src/ask.ts "your question"` | Full RAG: retrieve then stream an answer |
+| `npx tsx src/ask.ts "your question"` | Retrieve relevant chunks, then **stream an LLM answer** grounded on them (Ollama `/api/generate`) |
 | `npx tsx src/tests/eval.ts` | Manual recall-style checks (edit `TEST_CASES` for your vault) |
 
 ## Project layout
