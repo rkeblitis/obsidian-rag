@@ -14,6 +14,8 @@
 
 ## Move toward agents and "it figures out the prompt itself"
 
+The four steps below expand this, roughly in build order: each is a small, self-contained increment, iterative a rewrite.
+
 - [ ] **Small API:** expose vault search (and optionally ask) as callable functions or endpoints so agents are not tied to one fixed CLI template.
 - [ ] **Tool loop:** support repeated search / read (and maybe search again), not only single-turn retrieve then generate.
 - [ ] **Plan before act:** optional router or planner step so intent and search queries pick the right prompt template instead of one hard-coded block.
@@ -48,7 +50,7 @@
 
 ## Current state (snapshot)
 
-Rough picture of what was true when this section was last refreshed; treat the **checklists above** as the source of truth for what is next.
+Last refreshed 2026-05-12. Rough picture of what was true at that point; treat the **checklists above** as the source of truth for what is next.
 
 - Full RAG path works locally: vault → chunk → Ollama embeddings → cosine retrieval → threshold → `ask.ts` streams an answer with sources.
 - Paths and models come from `.env` / `src/config.ts`.
@@ -58,5 +60,5 @@ Rough picture of what was true when this section was last refreshed; treat the *
 
 Short narrative for future you (or a reviewer).
 
-- Early exploration lived in small CLIs under `src/` (`list-notes`, `load-vault`, `chunk`, `embed-vault`, `query`, `ask`); embed sanity check is `src/tests/embed-test.ts`.
+- The small CLIs under `src/` (`list-notes`, `load-vault`, `chunk`, `embed-vault`, `query`, `ask`) are a deliberate split — each runs one stage of the pipeline so the data is inspectable at every step. Embed sanity check is `src/tests/embed-test.ts`.
 - **Headlines learned:** embeddings behave like direction in high-D space (cosine compares direction); chunking is a real product knob; fixed similarity thresholds are model- and corpus-specific; corpus-level "meta" questions need explicit context (overview text, stats, or a second retrieval strategy); unit tests guard code, eval scripts guard *your* retrieval quality, different jobs.
