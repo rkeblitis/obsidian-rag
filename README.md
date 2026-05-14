@@ -3,86 +3,81 @@
 
 ## Why this repo exists
 
-A **learning build**: I implemented the full path end to end: chunking, embeddings, similarity retrieval, **prompt assembly, and streaming LLM output**, so I could reason about each step and gain insight into data quality and pitfall that are hard to learn by just wiring out-of-the-box solutions. Code stays small enough to read in one sitting.
+A **learning build**: I implemented the full path end to end: chunking, embeddings, similarity retrieval, **prompt assembly, and streaming LLM output**, so I could reason about each step and gain insight into data quality and pitfalls that are hard to learn by just wiring out-of-the-box solutions. Code stays small enough to read in one sitting.
 
 For **reviewers / future me**: see [Decision-log.md](./Decision-log.md) for tradeoffs and [ROADMAP.md](./ROADMAP.md) for backlog, agent/tool direction, and session notes.
 
 ## What it does
 
-- **Index:** walk Markdown under `VAULT_PATH`, boundary-aware chunks (~1000 characters, overlap 100), embed each chunk with Ollama’s **embedding** API, write `embeddings.json` (gitignored by default).
-- **Retrieve:** embed the question with the **same** embedding model as the index, rank chunks by cosine similarity, apply a similarity threshold, take top K (`query.ts` stops here).
-- **Generate (`ask.ts`):** pass the question plus retrieved excerpts (and optional vault overview) into Ollama’s **`/api/generate`** using `GENERATE_MODEL`; stream tokens to stdout and cite which notes were used.
-
-## How it works (short pipeline)
-
-1. Discover `.md` files under the vault root (hidden directories skipped).
-2. Load notes, drop very short stubs, split into chunks with paragraph / sentence / line / word friendly cut points (`src/lib/vault.ts`).
-3. Call Ollama `/api/embeddings` per chunk; store vectors plus note title, path **relative to vault root**, chunk index (`src/embed-vault.ts`).
-4. At query time: embed the question, sort chunks by cosine similarity (`src/lib/retrieve.ts`), filter by threshold, take top K.
-5. **`ask.ts` only:** build a prompt from those chunks (plus optional vault overview), call the **generation model** with streaming (`/api/generate`), so the answer is grounded in what was retrieved, not free-standing model guesses alone.
+1. **Index** — walk `.md` files under `VAULT_PATH` (hidden directories skipped), split into boundary-aware chunks (~1000 characters, overlap 100), embed each with Ollama's embedding API, write `embeddings.json` (gitignored by default). Chunking logic lives in `src/lib/vault.ts`.
+2. **Retrieve** — embed the question with the same embedding model as the index, rank chunks by cosine similarity, apply a threshold, take top K. `query.ts` stops here.
+3. **Generate** — `ask.ts` passes the question plus retrieved excerpts (and optional vault overview) into Ollama's `/api/generate`, streams tokens to stdout, and cites which notes were used. The answer is anchored in what was retrieved vs the model's guesses alone
 
 ## Requirements
 
 - **Node.js** 18+ (uses native `fetch`, ESM).
-- **Ollama** running locally, with models pulled for defaults below (or set env overrides).
+- **Ollama** running locally, with an embedding model and a generate model pulled (*or if you want a different model, use the env overrides*)
 
 ## Setup
 
-```bash
+```
 git clone <this-repo>
 cd obsidian-rag
 npm install
 cp .env.example .env
 ```
 
-Edit `.env` and set `VAULT_PATH` to the **root folder** that contains your Markdown notes (your Obsidian vault root, or any equivalent tree).
+Edit `.env` and set `VAULT_PATH` to the **root folder** that contains your Markdown notes (your Obsidian vault root, or any equivalent tree). Then pull an **embedding** model and a **generate** model
 
-Pull two kinds of models: an **embedding** model (vectors for search) and a **generate** model (the LLM that writes answers). Defaults match [src/config.ts](./src/config.ts):
-
-```bash
+```
 ollama pull nomic-embed-text
 ollama pull llama3.2
 ```
+All other config is via `.env` — see [`.env.example`](./.env.example) and [`src/config.ts`](./src/config.ts) for the full list and defaults. If you change the embedding model, rebuild the index with `embed-vault` so vectors stay comparable.
 
-You can use **`query.ts`** for retrieval-only (ranked chunks, no LLM) when debugging; **`ask.ts`** is the full path including generation.
+The pipeline is split so you can run it incrementally and inspect the data at each step: `query.ts` does retrieval only — ranked chunks, no LLM — which is useful for debugging or just seeing what the embeddings actually match before generation enters the picture. `ask.ts` is the full path including the streamed answer.
 
-The name reflects how I use it (Obsidian vault); **any directory tree of `.md` files** works as `VAULT_PATH`. The code only cares about recursive `.md` discovery, chunking, and paths, not Obsidian-specific formats. Hidden directories (names starting with `.`, e.g. `.obsidian`, `.git`) are skipped. Markdown is read as **plain text** (e.g. `[[wikilinks]]` are not expanded to filenames).
+The name reflects how I use it (Obsidian vault); **any directory tree of `.md` files** works as `VAULT_PATH`. The code only cares about recursive `.md` discovery, chunking, and paths, not Obsidian-specific formats. Hidden directories (names starting with `.`, e.g. `.obsidian`, `.git`) are skipped. Markdown is read as **plain text** (e.g. `[[wikilinks]]` are not expanded to filenames *yet* :)).
 
-## Configuration (environment)
+## Configuration
 
-| Variable | Required | Default | Role |
-|----------|----------|---------|------|
-| `VAULT_PATH` | Yes (for vault scripts) | - | Root folder for markdown discovery |
-| `EMBEDDINGS_FILE` | No | `embeddings.json` | Where the index is written / read |
-| `OLLAMA_BASE_URL` | No | `http://localhost:11434` | Ollama HTTP base |
-| `EMBEDDING_MODEL` | No | `nomic-embed-text` | Must match index and query time |
-| `GENERATE_MODEL` | No | `llama3.2` | Used only by `ask.ts` |
-| `VAULT_OVERVIEW_FILE` | No | - | Optional markdown blurb for corpus-level questions in `ask.ts` |
+Full variable list and defaults live in [`.env.example`](./.env.example) and [`src/config.ts`](./src/config.ts) — no point repeating them here. But I think two things worth knowing that the list won't tell you:
 
-If you change `EMBEDDING_MODEL`, rebuild the index with `embed-vault` so vectors stay comparable.
+- **`EMBEDDING_MODEL` is load-bearing.** It has to be the same at index time and query time. Change it without rebuilding the index (`embed-vault`) and you're comparing vectors from two different embedding spaces. The retrieval still runs, scores still come back, **they're just meaningless, so yea don't do that**. The code doesn't currently enforce this; see [Decision-log.md](./Decision-log.md) for why, and what a stricter version would do.
+- **The 0.55 similarity threshold isn't a universal constant.** It was picked by me eyeballing the scores on my vault with this embedding model. Different notes or a different model will shift where "good match" actually falls, so re-tune rather than inheriting the number.
 
 ## Usage
 
-Run from the repo root with `npx tsx`:
+Run from the repo root with `npx tsx`. The CLIs are deliberately split so you can walk the pipeline one stage at a time and inspect what each step produces (if you want). Or you can just run the whole thing and trust it
+
+**The main path:**
 
 | Command | Purpose |
-|---------|---------|
-| `npm test` | Unit tests (cosine similarity, chunking); no Ollama |
-| `npx tsx src/list-notes.ts` | List markdown paths under the vault |
-| `npx tsx src/load-vault.ts` | Load vault, print note count |
-| `npx tsx src/chunk.ts` | Chunk entire vault, print stats and sample output |
-| `npx tsx src/tests/embed-test.ts` | One embedding call against Ollama (sanity check) |
+| --- | --- |
 | `npx tsx src/embed-vault.ts` | Build or refresh `embeddings.json` |
-| `npx tsx src/query.ts "your question"` | Retrieval only: top matches, no LLM |
-| `npx tsx src/ask.ts "your question"` | Retrieve relevant chunks, then **stream an LLM answer** grounded on them (Ollama `/api/generate`) |
-| `npx tsx src/tests/eval.ts` | Manual retrieval checks: add `src/tests/eval-cases.local.ts` (gitignored) from `eval-cases.local.example.ts`; otherwise runs generic placeholders |
+| `npx tsx src/query.ts "your question"` | Retrieval only — ranked chunks, no LLM |
+| `npx tsx src/ask.ts "your question"` | Full RAG: retrieve, then stream a grounded answer |
+| `npm test` | Unit tests (cosine similarity, chunking); no Ollama needed |
+
+**Inspecting earlier stages** — useful when something looks off, or just to see the data:
+
+| Command | Purpose |
+| --- | --- |
+| `npx tsx src/list-notes.ts` | List markdown paths found under the vault |
+| `npx tsx src/load-vault.ts` | Load the vault, print note count |
+| `npx tsx src/chunk.ts` | Chunk the whole vault, print stats and a sample |
+| `npx tsx src/tests/embed-test.ts` | One embedding call against Ollama (sanity check) |
+| `npx tsx src/tests/eval.ts` | Manual retrieval checks against your own expectations |
+
 
 ## Project layout
+
+The split is deliberate: pure logic in `lib/` (testable without Ollama or your notes), thin CLI entrypoints at the top level, each doing one stage of the pipeline.
 
 ```
 src/
   config.ts              # env, paths, vault overview for prompts
-  lib/
+  lib/                   # pure logic — no I/O, no Ollama, unit-testable
     types.ts             # Note, Chunk, EmbeddedChunk
     vault.ts             # discovery, load, chunking
     similarity.ts        # cosine similarity
@@ -90,19 +85,22 @@ src/
     embeddings-index.ts  # load embeddings.json
     ollama/embed.ts      # embed one string via Ollama
   embed-vault.ts         # CLI: build index
-  query.ts               # CLI: debug retrieval
-  ask.ts                 # CLI: RAG + generate
-  tests/eval.ts          # CLI: vault-specific eval cases
-  tests/unit/            # npm test: pure functions
+  query.ts               # CLI: retrieval only (debug / inspect)
+  ask.ts                 # CLI: full RAG + generate
+  tests/eval.ts          # CLI: retrieval eval against your own expectations
+  tests/unit/            # npm test: pure functions, no network
 ```
 
-## Scope and honesty
+## Scope and honest tradeoffs
 
-- **Unit tests** cover `similarity` and `chunkNote`; they do not replace a **retrieval eval** on your real index (`tests/eval.ts`).
-- **Scale:** in-memory scan over a JSON index is fine for hundreds or low thousands of chunks; a vector DB is the next lever if latency or RAM becomes an issue.
-- **Git hygiene:** `embeddings.json` holds chunk text and paths, it must stay out of version control (see `.gitignore`). Run `git ls-files embeddings.json` before pushing; it should print nothing. If this file was ever committed, remove it from the index and consider [rewriting history](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository) so clones do not retain old blobs.
+This is a learning build, so some choices are intentionally "good enough" rather than production-grade. Just explaining upfront about which ones rather than have y'all guess
 
-## Further reading
+- **Flat JSON index, not a vector database.** Fine for hundreds of chunks, where a linear scan is simple and easy to inspect. I'd reach for a real vector DB once cold-start RAM, latency, or incremental updates became actual problems, not before.
+- **Heuristic chunking, not tokenizer-exact.** Roughly 1000 characters with boundary-aware cut points. Good enough for normal-sized notes; I'd revisit for a model with a tight context window.
+- **A single hardcoded similarity threshold (0.55).** Picked by eyeballing scores on my own vault. It's sensitive to your notes and your embedding model, so any change there means re-tuning, not copying the constant over.
+- **Pure single-turn retrieval.** One embed, one rank, one prompt. No reranking, no query rewriting, no agent loop yet. See [ROADMAP.md](./ROADMAP.md) for where that goes next.
+- **Unit tests cover pure logic, not retrieval quality.** `npm test` guards cosine math and chunking invariants by design; measuring whether retrieval actually returns the right chunks is a separate job, handled by the eval script (`src/tests/eval.ts`).
 
-- [Decision-log.md](./Decision-log.md): dated tradeoffs and when to reopen them.
-- [ROADMAP.md](./ROADMAP.md): backlog, current snapshot + session notes
+Full reasoning for each design choice is in [Decision-log.md](./Decision-log.md) (dated tradeoffs and when to reopen them). See [ROADMAP.md](./ROADMAP.md) for backlog, current snapshot, and session notes. 
+
+Thanks and have fun with it!
