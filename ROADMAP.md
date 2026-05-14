@@ -12,7 +12,7 @@
 - [ ] **Eval set hygiene:** versioned questions + expected titles; optional export of scores for threshold tuning.
 - [ ] **Stronger generation:** larger local model or hosted API (separate decision: privacy vs quality).
 
-## Toward agents and "it figures out the prompt" (practical order)
+## Move toward agents and "it figures out the prompt itself"
 
 - [ ] **Small API:** expose vault search (and optionally ask) as callable functions or endpoints so agents are not tied to one fixed CLI template.
 - [ ] **Tool loop:** support repeated search / read (and maybe search again), not only single-turn retrieve then generate.
