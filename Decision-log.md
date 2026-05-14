@@ -40,5 +40,5 @@ Storing **absolute** file paths in `embeddings.json` would leak machine layout a
 
 **Unit tests** (`npm test`, under `src/tests/unit/`) answer: did we break pure logic (cosine math, chunking invariants)? They do not talk to Ollama and they do not need my private notes.
 
-**`src/tests/eval.ts`** is different: it is a small, hand-maintained list of questions and “I expect at least one of these note titles to appear in the top K.” That measures whether *this* index and *this* model behave on *my* vault. It is valuable for tuning; it is a poor fit for a public CI gate unless someone checks in a tiny fake vault and matching expectations.
+**`src/checks/eval.ts`** is different: it is a small, hand-maintained list of questions and “I expect at least one of these note titles to appear in the top K.” That measures whether *this* index and *this* model behave on *my* vault. It is valuable for tuning; it is a poor fit for a public CI gate unless someone checks in a tiny fake vault and matching expectations.
 

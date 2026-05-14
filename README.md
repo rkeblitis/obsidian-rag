@@ -66,9 +66,10 @@ Run from the repo root with `npx tsx`. The CLIs are deliberately split so you ca
 | `npx tsx src/list-notes.ts` | List markdown paths found under the vault |
 | `npx tsx src/load-vault.ts` | Load the vault, print note count |
 | `npx tsx src/chunk.ts` | Chunk the whole vault, print stats and a sample |
-| `npx tsx src/tests/embed-test.ts` | One embedding call against Ollama (sanity check) |
-| `npx tsx src/tests/eval.ts` | Manual retrieval checks against your own expectations |
+| `npx tsx src/checks/embed-test.ts` | One embedding call against Ollama (sanity check) |
+| `npx tsx src/checks/eval.ts` | Manual retrieval checks against your own expectations |
 
+Optional: copy `src/checks/eval-cases.local.example.ts` to `src/checks/eval-cases.local.ts` and edit `TEST_CASES` (that file is gitignored). If you still have `src/tests/eval-cases.local.ts` from an older layout, move it to `src/checks/eval-cases.local.ts`.
 
 ## Project layout
 
@@ -87,7 +88,8 @@ src/
   embed-vault.ts         # CLI: build index
   query.ts               # CLI: retrieval only (debug / inspect)
   ask.ts                 # CLI: full RAG + generate
-  tests/eval.ts          # CLI: retrieval eval against your own expectations
+  checks/embed-test.ts   # CLI: Ollama embed sanity (manual; needs Ollama)
+  checks/eval.ts         # CLI: retrieval eval (manual; optional eval-cases.local.ts)
   tests/unit/            # npm test: pure functions, no network
 ```
 
@@ -99,7 +101,7 @@ This is a learning build, so some choices are intentionally "good enough" rather
 - **Heuristic chunking, not tokenizer-exact.** Roughly 1000 characters with boundary-aware cut points. Good enough for normal-sized notes; I'd revisit for a model with a tight context window.
 - **A single hardcoded similarity threshold (0.55).** Picked by eyeballing scores on my own vault. It's sensitive to your notes and your embedding model, so any change there means re-tuning, not copying the constant over.
 - **Pure single-turn retrieval.** One embed, one rank, one prompt. No reranking, no query rewriting, no agent loop yet. See [ROADMAP.md](./ROADMAP.md) for where that goes next.
-- **Unit tests cover pure logic, not retrieval quality.** `npm test` guards cosine math and chunking invariants by design; measuring whether retrieval actually returns the right chunks is a separate job, handled by the eval script (`src/tests/eval.ts`).
+- **Unit tests cover pure logic, not retrieval quality.** `npm test` guards cosine math and chunking invariants by design; measuring whether retrieval actually returns the right chunks is a separate job, handled by the eval script (`src/checks/eval.ts`).
 
 Full reasoning for each design choice is in [Decision-log.md](./Decision-log.md) (dated tradeoffs and when to reopen them). See [ROADMAP.md](./ROADMAP.md) for backlog, current snapshot, and session notes. 
 

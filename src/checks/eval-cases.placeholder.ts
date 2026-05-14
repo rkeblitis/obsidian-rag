@@ -6,7 +6,7 @@
  *   1. Copy this file to `eval-cases.local.ts` in the same folder.
  *   2. Replace `TEST_CASES` with questions and note titles that exist in YOUR embeddings index
  *      (`expectedNotes` = note title strings, no `.md` suffix, as stored in `embeddings.json`).
- *   3. Run `npx tsx src/tests/eval.ts`.
+ *   3. Run `npx tsx src/checks/eval.ts`.
  *
  * `eval-cases.local.ts` is listed in `.gitignore` so your real titles stay off GitHub.
  */

@@ -1,7 +1,7 @@
 /**
  * Manual retrieval eval: run questions against your index and check if expected note titles
  * appear in the top K. Uses `eval-cases.local.ts` when present; otherwise placeholder cases.
- * Run: `npx tsx src/tests/eval.ts`
+ * Run: `npx tsx src/checks/eval.ts`
  */
 import { createRequire } from "node:module";
 import { loadEmbeddedChunks } from "../lib/embeddings-index.js";

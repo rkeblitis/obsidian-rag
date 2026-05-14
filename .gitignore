@@ -8,4 +8,4 @@ vault-overview.local.md
 LEARNING-log.md
 Parking-lot.md
 REFACTOR-PLAN.md
-src/tests/eval-cases.local.ts
+src/checks/eval-cases.local.ts

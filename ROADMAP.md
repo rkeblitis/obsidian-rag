@@ -60,5 +60,5 @@ Last refreshed 2026-05-12. Rough picture of what was true at that point; treat t
 
 Short narrative for future you (or a reviewer).
 
-- The small CLIs under `src/` (`list-notes`, `load-vault`, `chunk`, `embed-vault`, `query`, `ask`) are a deliberate split — each runs one stage of the pipeline so the data is inspectable at every step. Embed sanity check is `src/tests/embed-test.ts`.
+- The small CLIs under `src/` (`list-notes`, `load-vault`, `chunk`, `embed-vault`, `query`, `ask`) are a deliberate split — each runs one stage of the pipeline so the data is inspectable at every step. Embed sanity check is `src/checks/embed-test.ts`.
 - **Headlines learned:** embeddings behave like direction in high-D space (cosine compares direction); chunking is a real product knob; fixed similarity thresholds are model- and corpus-specific; corpus-level "meta" questions need explicit context (overview text, stats, or a second retrieval strategy); unit tests guard code, eval scripts guard *your* retrieval quality, different jobs.
