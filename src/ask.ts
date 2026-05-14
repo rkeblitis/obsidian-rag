@@ -2,6 +2,7 @@
  * Full RAG CLI: load the embedding index, retrieve relevant chunks, stream an answer from Ollama (/api/generate).
  * File is for debuging and learning mostly
  * Not imported elsewhere — run directly, e.g. `npx tsx src/ask.ts "your question"`.
+ * To inspect retrieval only (chunks + scores, no LLM), use `npx tsx src/query.ts` (see `--peek`, `--full`).
  */
 import {
   generateModel,
