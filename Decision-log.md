@@ -3,7 +3,7 @@
 Purpose: capture **context, choice, and tradeoff** for decisions that are not obvious from the code alone. Useful for **future me** (“why did I do that?”) and for **reviewers** who want signal beyond “it works on my machine.”
 ---
 
-## 2026-05-12 — first pass architecture
+## 2026-05-12: first pass architecture
 
 ### TypeScript instead of Python
 
@@ -29,7 +29,7 @@ The **0.55** number is not sacred. I picked it after eyeballing scores: real hit
 
 ### Why the index is a JSON file, not a vector database
 
-For my vault size (on the order of hundreds of chunks, not millions), loading `embeddings.json` into memory and doing a linear scan plus sort is simple, easy to inspect with `jq` or a text editor, and fast enough. A proper **vector database** (or approximate nearest neighbor index) buys you sublinear search and nicer operational features when data gets big or you serve multiple users. I would add one when cold start RAM, latency, or incremental updates become real problems—not before.
+For my vault size (on the order of hundreds of chunks, not millions), loading `embeddings.json` into memory and doing a linear scan plus sort is simple, easy to inspect with `jq` or a text editor, and fast enough. A proper **vector database** (or approximate nearest neighbor index) buys you sublinear search and nicer operational features when data gets big or you serve multiple users. I would add one when cold start RAM, latency, or incremental updates become real problems
 
 ### Relative paths inside the index
 
@@ -37,7 +37,7 @@ Storing **absolute** file paths in `embeddings.json` would leak machine layout a
 
 ### How I check quality: eval script vs unit tests
 
-**Unit tests** (`npm test`, under `src/tests/unit/`) answer: did we break pure logic—cosine math, chunking invariants? They do not talk to Ollama and they do not need my private notes.
+**Unit tests** (`npm test`, under `src/tests/unit/`) answer: did we break pure logic (cosine math, chunking invariants)? They do not talk to Ollama and they do not need my private notes.
 
 **`src/tests/eval.ts`** is different: it is a small, hand-maintained list of questions and “I expect at least one of these note titles to appear in the top K.” That measures whether *this* index and *this* model behave on *my* vault. It is valuable for tuning; it is a poor fit for a public CI gate unless someone checks in a tiny fake vault and matching expectations.
 

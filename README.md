@@ -1,14 +1,14 @@
 # Obsidian RAG
 
-**Retrieve-then-generate** over your own Markdown: embeddings find relevant passages, a **local LLM** (via Ollama) turns them into a streamed answer with citations — the same idea as grounded assistants over private docs, just small and fully on your machine (no cloud APIs in the default setup).
+**Retrieve-then-generate** over your own Markdown: embeddings find relevant passages, a **local LLM** (via Ollama) turns them into a streamed answer with citations: the same idea as grounded assistants over private docs, just small and fully on your machine (no cloud APIs in the default setup).
 
 You can use **`query.ts`** for retrieval-only (ranked chunks, no LLM) when debugging; **`ask.ts`** is the full path including generation.
 
-The name reflects how I use it (Obsidian vault); **any directory tree of `.md` files** works as `VAULT_PATH`. The code only cares about recursive `.md` discovery, chunking, and paths — not Obsidian-specific formats. Hidden directories (names starting with `.`, e.g. `.obsidian`, `.git`) are skipped. Markdown is read as **plain text** (e.g. `[[wikilinks]]` are not expanded to filenames).
+The name reflects how I use it (Obsidian vault); **any directory tree of `.md` files** works as `VAULT_PATH`. The code only cares about recursive `.md` discovery, chunking, and paths, not Obsidian-specific formats. Hidden directories (names starting with `.`, e.g. `.obsidian`, `.git`) are skipped. Markdown is read as **plain text** (e.g. `[[wikilinks]]` are not expanded to filenames).
 
 ## Why this repo exists
 
-A **learning build**: I implemented the full path end to end — chunking, embeddings, similarity retrieval, **prompt assembly, and streaming LLM output** — so I could reason about each step and gain insight into data quality and pitfall that are hard to learn by just wiring out of the box soultions. Code stays small enough to read in one sitting.
+A **learning build**: I implemented the full path end to end: chunking, embeddings, similarity retrieval, **prompt assembly, and streaming LLM output**, so I could reason about each step and gain insight into data quality and pitfall that are hard to learn by just wiring out-of-the-box solutions. Code stays small enough to read in one sitting.
 
 For **reviewers / future me**: see [Decision-log.md](./Decision-log.md) for tradeoffs and [ROADMAP.md](./ROADMAP.md) for backlog, including **tests, eval set**, and planned meta-question work.
 
@@ -24,7 +24,7 @@ For **reviewers / future me**: see [Decision-log.md](./Decision-log.md) for trad
 2. Load notes, drop very short stubs, split into chunks with paragraph / sentence / line / word friendly cut points (`src/lib/vault.ts`).
 3. Call Ollama `/api/embeddings` per chunk; store vectors plus note title, path **relative to vault root**, chunk index (`src/embed-vault.ts`).
 4. At query time: embed the question, sort chunks by cosine similarity (`src/lib/retrieve.ts`), filter by threshold, take top K.
-5. **`ask.ts` only:** build a prompt from those chunks (plus optional vault overview), call the **generation model** with streaming (`/api/generate`), so the answer is grounded in what was retrieved — not free‑standing model guesses alone.
+5. **`ask.ts` only:** build a prompt from those chunks (plus optional vault overview), call the **generation model** with streaming (`/api/generate`), so the answer is grounded in what was retrieved, not free-standing model guesses alone.
 
 ## Requirements
 
@@ -53,12 +53,12 @@ ollama pull llama3.2
 
 | Variable | Required | Default | Role |
 |----------|----------|---------|------|
-| `VAULT_PATH` | Yes (for vault scripts) | — | Root folder for markdown discovery |
+| `VAULT_PATH` | Yes (for vault scripts) | - | Root folder for markdown discovery |
 | `EMBEDDINGS_FILE` | No | `embeddings.json` | Where the index is written / read |
 | `OLLAMA_BASE_URL` | No | `http://localhost:11434` | Ollama HTTP base |
 | `EMBEDDING_MODEL` | No | `nomic-embed-text` | Must match index and query time |
 | `GENERATE_MODEL` | No | `llama3.2` | Used only by `ask.ts` |
-| `VAULT_OVERVIEW_FILE` | No | — | Optional markdown blurb for corpus-level questions in `ask.ts` |
+| `VAULT_OVERVIEW_FILE` | No | - | Optional markdown blurb for corpus-level questions in `ask.ts` |
 
 If you change `EMBEDDING_MODEL`, rebuild the index with `embed-vault` so vectors stay comparable.
 
@@ -94,16 +94,16 @@ src/
   query.ts               # CLI: debug retrieval
   ask.ts                 # CLI: RAG + generate
   tests/eval.ts          # CLI: vault-specific eval cases
-  tests/unit/            # npm test — pure functions
+  tests/unit/            # npm test: pure functions
 ```
 
 ## Scope and honesty
 
 - **Unit tests** cover `similarity` and `chunkNote`; they do not replace a **retrieval eval** on your real index (`tests/eval.ts`).
 - **Scale:** in-memory scan over a JSON index is fine for hundreds or low thousands of chunks; a vector DB is the next lever if latency or RAM becomes an issue.
-- **Git hygiene:** `embeddings.json` holds chunk text and paths — it must stay out of version control (see `.gitignore`). Run `git ls-files embeddings.json` before pushing; it should print nothing. If this file was ever committed, remove it from the index and consider [rewriting history](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository) so clones do not retain old blobs.
+- **Git hygiene:** `embeddings.json` holds chunk text and paths, it must stay out of version control (see `.gitignore`). Run `git ls-files embeddings.json` before pushing; it should print nothing. If this file was ever committed, remove it from the index and consider [rewriting history](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository) so clones do not retain old blobs.
 
 ## Further reading
 
-- [Decision-log.md](./Decision-log.md) — dated tradeoffs and when to reopen them.
-- [ROADMAP.md](./ROADMAP.md) — backlog, current snapshot + session notes 
+- [Decision-log.md](./Decision-log.md): dated tradeoffs and when to reopen them.
+- [ROADMAP.md](./ROADMAP.md): backlog, current snapshot + session notes
