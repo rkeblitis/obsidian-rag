@@ -55,9 +55,11 @@ Run from the repo root with `npx tsx`. The CLIs are deliberately split so you ca
 | Command | Purpose |
 | --- | --- |
 | `npx tsx src/embed-vault.ts` | Build or refresh `embeddings.json` |
-| `npx tsx src/query.ts "your question"` | Retrieval only — ranked chunks, no LLM |
+| `npx tsx src/query.ts "your question"` | Retrieval only — ranked chunks, no LLM. Flags: `--peek N`, `--full`, `--top N`, `--threshold T`, `--help` |
 | `npx tsx src/ask.ts "your question"` | Full RAG: retrieve, then stream a grounded answer |
 | `npm test` | Unit tests (cosine similarity, chunking); no Ollama needed |
+
+For debugging retrieval (why did *these* chunks win?), use `query.ts` flags: `--peek N` shows the top N chunks by raw score ignoring the threshold, `--full` prints full chunk text instead of a preview, `--threshold T` overrides the default cutoff. Run `npx tsx src/query.ts --help` for the full list.
 
 **Inspecting earlier stages** — useful when something looks off, or just to see the data:
 
