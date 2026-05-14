@@ -98,6 +98,7 @@ src/
 
 - **Unit tests** cover `similarity` and `chunkNote`; they do not replace a **retrieval eval** on your real index (`tests/eval.ts`).
 - **Scale:** in-memory scan over a JSON index is fine for hundreds or low thousands of chunks; a vector DB is the next lever if latency or RAM becomes an issue.
+- **Git hygiene:** `embeddings.json` holds chunk text and paths — it must stay out of version control (see `.gitignore`). Run `git ls-files embeddings.json` before pushing; it should print nothing. If this file was ever committed, remove it from the index and consider [rewriting history](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository) so clones do not retain old blobs.
 
 ## Further reading
 
