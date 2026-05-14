@@ -1,11 +1,5 @@
 # Obsidian RAG
 
-**Retrieve-then-generate** over your own Markdown: embeddings find relevant passages, a **local LLM** (via Ollama) turns them into a streamed answer with citations: the same idea as grounded assistants over private docs, just small and fully on your machine (no cloud APIs in the default setup).
-
-You can use **`query.ts`** for retrieval-only (ranked chunks, no LLM) when debugging; **`ask.ts`** is the full path including generation.
-
-The name reflects how I use it (Obsidian vault); **any directory tree of `.md` files** works as `VAULT_PATH`. The code only cares about recursive `.md` discovery, chunking, and paths, not Obsidian-specific formats. Hidden directories (names starting with `.`, e.g. `.obsidian`, `.git`) are skipped. Markdown is read as **plain text** (e.g. `[[wikilinks]]` are not expanded to filenames).
-
 ## Why this repo exists
 
 A **learning build**: I implemented the full path end to end: chunking, embeddings, similarity retrieval, **prompt assembly, and streaming LLM output**, so I could reason about each step and gain insight into data quality and pitfall that are hard to learn by just wiring out-of-the-box solutions. Code stays small enough to read in one sitting.
@@ -48,6 +42,12 @@ Pull two kinds of models: an **embedding** model (vectors for search) and a **ge
 ollama pull nomic-embed-text
 ollama pull llama3.2
 ```
+
+**Retrieve-then-generate** over your own Markdown: embeddings find relevant passages, a **local LLM** (via Ollama) turns them into a streamed answer with citations: the same idea as grounded assistants over private docs, just small and fully on your machine (no cloud APIs in the default setup).
+
+You can use **`query.ts`** for retrieval-only (ranked chunks, no LLM) when debugging; **`ask.ts`** is the full path including generation.
+
+The name reflects how I use it (Obsidian vault); **any directory tree of `.md` files** works as `VAULT_PATH`. The code only cares about recursive `.md` discovery, chunking, and paths, not Obsidian-specific formats. Hidden directories (names starting with `.`, e.g. `.obsidian`, `.git`) are skipped. Markdown is read as **plain text** (e.g. `[[wikilinks]]` are not expanded to filenames).
 
 ## Configuration (environment)
 
