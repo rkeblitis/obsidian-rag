@@ -33,8 +33,8 @@ async function query(question: string, topK: number = 5, threshold: number = 0.5
   }
 }
 
-// --- Run a question ---
-// Change this to ask different things
-const question = process.argv.slice(2).join(" ") || "What is an API contract?";
+// --- Run a question (pass argv, or use generic default below) ---
+const question =
+  process.argv.slice(2).join(" ").trim() || "What is in my notes?";
 
 query(question).catch(console.error);

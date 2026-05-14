@@ -128,5 +128,7 @@ async function ask(question: string): Promise<void> {
   console.log();
 }
 
-const question = process.argv.slice(2).join(" ") || "What is an API contract?";
+// Pass argv, or use generic default (no vault-specific wording in repo)
+const question =
+  process.argv.slice(2).join(" ").trim() || "What is in my notes?";
 ask(question).catch(console.error);
