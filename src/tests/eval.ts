@@ -1,59 +1,53 @@
+/**
+ * Manual retrieval eval: run questions against your index and check if expected note titles
+ * appear in the top K. Uses `eval-cases.local.ts` when present; otherwise placeholder cases.
+ * Run: `npx tsx src/tests/eval.ts`
+ */
+import { createRequire } from "node:module";
 import { loadEmbeddedChunks } from "../lib/embeddings-index.js";
 import { embedText } from "../lib/ollama/embed.js";
 import { rankEmbeddedChunksByCosine } from "../lib/retrieve.js";
 import type { EmbeddedChunk } from "../lib/types.js";
+import {
+  PLACEHOLDER_EVAL_CASES,
+  type EvalTestCase,
+} from "./eval-cases.placeholder.js";
 
-type TestCase = {
-  question: string;
-  expectedNotes: string[];  // note titles that SHOULD appear in results
-};
+const require = createRequire(import.meta.url);
 
-// --- Your test set ---
-// Edit these to match your actual vault!
-// expectedNotes are the note TITLES (no .md extension) that should appear in top results
-const TEST_CASES: TestCase[] = [
-  {
-    question: "What is an API contract?",
-    expectedNotes: ["API", "API vs Endpoint"],
-  },
-  {
-    question: "Tell me about data models in TypeScript",
-    expectedNotes: ["Data Model"],
-  },
-  {
-    question: "What is tree shaking?",
-    expectedNotes: ["Tree Shaking"],
-  },
-  {
-    question: "How does GraphQL work?",
-    expectedNotes: ["GraphQL"],
-  },
-  {
-    question: "What's the deal with LaunchDarkly?",
-    expectedNotes: ["LaunchDarkly"],
-  },
-  // Add 5+ more questions based on YOUR vault
-];
+function loadEvalCases(): EvalTestCase[] {
+  try {
+    const mod = require("./eval-cases.local.js") as { TEST_CASES?: EvalTestCase[] };
+    if (Array.isArray(mod.TEST_CASES) && mod.TEST_CASES.length > 0) return mod.TEST_CASES;
+  } catch {
+    // optional file missing or invalid
+  }
+  console.log(
+    "\n(eval) No eval-cases.local.ts (or it is empty). Using generic placeholders from eval-cases.placeholder.ts.",
+  );
+  console.log(
+    "      Copy eval-cases.local.example.ts to eval-cases.local.ts and edit TEST_CASES for your vault.\n",
+  );
+  return PLACEHOLDER_EVAL_CASES;
+}
 
-async function evaluateOne(chunks: EmbeddedChunk[], testCase: TestCase, topK: number = 5): Promise<boolean> {
+async function evaluateOne(chunks: EmbeddedChunk[], testCase: EvalTestCase, topK: number = 5): Promise<boolean> {
   const questionVector = await embedText(testCase.question);
   const ranked = rankEmbeddedChunksByCosine(questionVector, chunks);
   const top = ranked.slice(0, topK);
 
-  // Did at least one expected note appear in the top K?
   const retrievedTitles = new Set(top.map(r => r.chunk.noteTitle));
-  const hit = testCase.expectedNotes.some(expected => retrievedTitles.has(expected));
-
-  return hit;
+  return testCase.expectedNotes.some(expected => retrievedTitles.has(expected));
 }
 
 async function main() {
+  const testCases = loadEvalCases();
   const chunks = await loadEmbeddedChunks();
 
-  console.log(`Running ${TEST_CASES.length} test cases...\n`);
+  console.log(`Running ${testCases.length} test cases...\n`);
 
   let passed = 0;
-  for (const testCase of TEST_CASES) {
+  for (const testCase of testCases) {
     const hit = await evaluateOne(chunks, testCase);
     const symbol = hit ? "✓" : "✗";
     console.log(`${symbol} "${testCase.question}"`);
@@ -61,8 +55,8 @@ async function main() {
     if (hit) passed++;
   }
 
-  const score = ((passed / TEST_CASES.length) * 100).toFixed(0);
-  console.log(`\n=== Score: ${passed}/${TEST_CASES.length} (${score}%) ===`);
+  const score = ((passed / testCases.length) * 100).toFixed(0);
+  console.log(`\n=== Score: ${passed}/${testCases.length} (${score}%) ===`);
 }
 
 main().catch(console.error);

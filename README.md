@@ -76,7 +76,7 @@ Run from the repo root with `npx tsx`:
 | `npx tsx src/embed-vault.ts` | Build or refresh `embeddings.json` |
 | `npx tsx src/query.ts "your question"` | Retrieval only: top matches, no LLM |
 | `npx tsx src/ask.ts "your question"` | Retrieve relevant chunks, then **stream an LLM answer** grounded on them (Ollama `/api/generate`) |
-| `npx tsx src/tests/eval.ts` | Manual recall-style checks (edit `TEST_CASES` for your vault) |
+| `npx tsx src/tests/eval.ts` | Manual retrieval checks: add `src/tests/eval-cases.local.ts` (gitignored) from `eval-cases.local.example.ts`; otherwise runs generic placeholders |
 
 ## Project layout
 
