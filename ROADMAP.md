@@ -1,15 +1,5 @@
 # Roadmap and backlog
 
-Priorities will update when focus shifts
-
-
-| | **Automated tests** (e.g. `npm test`) | **Eval set** (e.g. `src/tests/eval.ts`) |
-|---|---|---|
-| **Question** | Did we break the **code**? | Is the **system** (models + index + threshold) good enough on **your** notes? |
-| **Passes when** | Deterministic outputs match assertions (pure math, chunk shapes). | Retrieved titles overlap your expected note titles for hand-picked questions. |
-| **CI** | Yes: no network, no private vault. | Usually **manual** or a private job: cases embed your note titles and embedding model. |
-| **Examples here** | `src/tests/unit/` — cosine, `chunkNote` fixtures. | Edit `TEST_CASES` in `src/tests/eval.ts`, run against your `embeddings.json`. |
-
 ## Near-term (engineering)
 
 - [x] Minimal **unit tests** (`cosineSimilarity`, `chunkNote`) via `npm test`.
