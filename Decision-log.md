@@ -1,6 +1,7 @@
 # Decision log
 
 Purpose: capture **context, choice, and tradeoff** for decisions that are not obvious from the code alone. Useful for **future me** (“why did I do that?”) and for **anyone really** who's curious beyond “it works on my machine.”
+
 ---
 
 ## 2026-05-12: first pass architecture
